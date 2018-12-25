@@ -1,4 +1,6 @@
+from redshells.train.train_clasification_model import TrainClassificationModel, ValidateClassificationModel
 from redshells.train.train_dictionary import TrainDictionary
 from redshells.train.train_fasttext import TrainFastText
+from redshells.train.train_pairwise_similarity_model import TrainPairwiseSimilarityModel
 from redshells.train.train_word2vec import TrainWor2Vec
 from redshells.train.train_scdv import TrainSCDV

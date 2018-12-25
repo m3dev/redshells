@@ -12,7 +12,7 @@ class TrainDictionary(gokart.TaskOnKart):
         description='The task outputs tokenized texts with type "List[List[str]]".')
     output_file_path = luigi.Parameter(default='model/dictionary.pkl')  # type: str
     dictionary_filter_kwargs = luigi.DictParameter(
-        default=dict(),
+        default=dict(no_below=5, no_above=0.5, keep_n=100000, keep_tokens=None),
         description='Arguments for FastText except "sentences". Please see gensim.corpura.FastText for more details.'
     )  # type: Dict[str, Any]
 

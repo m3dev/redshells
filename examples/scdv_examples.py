@@ -11,9 +11,7 @@ class TrainSCDVWithExistingFile(gokart.TaskOnKart):
 
     def requires(self):
         text_data = redshells.data.LoadExistingFile(file_path=self.text_data_file_path)
-        dictionary = redshells.train.TrainDictionary(
-            tokenized_text_data_task=text_data,
-            dictionary_filter_kwargs=dict(no_below=5, no_above=0.5, keep_n=100000, keep_tokens=None))
+        dictionary = redshells.train.TrainDictionary(tokenized_text_data_task=text_data)
         fasttext = redshells.train.TrainFastText(tokenized_text_data_task=text_data)
         scdv = redshells.train.TrainSCDV(
             tokenized_text_data_task=text_data, dictionary_task=dictionary, word2vec_task=fasttext)
