@@ -1,0 +1,6 @@
+luigi
+gokart
+pandas
+numpy
+gensim
+sklearn
