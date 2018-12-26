@@ -10,6 +10,7 @@ import redshells.model
 
 
 class TrainSCDV(gokart.TaskOnKart):
+    task_namespace = 'redshells'
     tokenized_text_data_task = gokart.TaskInstanceParameter(
         description='A task outputs tokenized texts with type "List[List[str]]".')
     dictionary_task = gokart.TaskInstanceParameter(description='A task outputs gensim.corpora.Dictionary.')

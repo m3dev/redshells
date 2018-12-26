@@ -3,6 +3,7 @@ import luigi
 
 
 class LoadExistingFile(gokart.TaskOnKart):
+    task_namespace = 'redshells'
     file_path = luigi.Parameter()  # type: str
     workspace_directory = ''
 

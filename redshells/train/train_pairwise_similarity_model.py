@@ -53,6 +53,7 @@ class TrainPairwiseSimilarityModel(_PairwiseSimilarityModelTask):
     """
     Train pairwise similarity models. Please see `_PairwiseSimilarityModelTask` for more details and required parameters.
     """
+    task_namespace = 'redshells'
     output_file_path = luigi.Parameter(default='model/pairwise_similarity_model.pkl')  # type: str
 
     def run(self):
@@ -63,6 +64,7 @@ class ValidatePairwiseSimilarityModel(_PairwiseSimilarityModelTask):
     """
     Train pairwise similarity models. Please see `_PairwiseSimilarityModelTask` for more details and required parameters.
     """
+    task_namespace = 'redshells'
     cross_validation_size = luigi.IntParameter()  # type: int
     output_file_path = luigi.Parameter(default='model/pairwise_similarity_model.pkl')  # type: str
 

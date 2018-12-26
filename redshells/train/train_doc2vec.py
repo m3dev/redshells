@@ -9,6 +9,7 @@ import luigi
 
 
 class TrainDoc2Vec(gokart.TaskOnKart):
+    task_namespace = 'redshells'
     tokenized_text_data_task = gokart.TaskInstanceParameter(
         description='The task outputs tokenized texts with type "List[List[str]]".')
     output_file_path = luigi.Parameter(default='model/doc2vec.zip')  # type: str
