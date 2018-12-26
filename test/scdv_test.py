@@ -6,7 +6,7 @@ import numpy as np
 from redshells.model.scdv import SCDV
 
 
-class TestSCDV(unittest.TestCase):
+class SCDVTest(unittest.TestCase):
     def setUp(self):
         self._documents = [['a', 'b'], ['a', 'c', 'd', 'e'], ['a']]
         self._dictionary_filter_parameters = dict(no_below=0, no_above=0.5, keep_n=100000, keep_tokens=None)

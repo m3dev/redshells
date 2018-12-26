@@ -8,7 +8,7 @@ import gokart
 import luigi
 
 
-class TrainWor2Vec(gokart.TaskOnKart):
+class TrainWord2Vec(gokart.TaskOnKart):
     tokenized_text_data_task = gokart.TaskInstanceParameter(
         description='The task outputs tokenized texts with type "List[List[str]]".')
     output_file_path = luigi.Parameter(default='model/word2vec.zip')  # type: str
