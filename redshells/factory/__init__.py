@@ -1,1 +1,1 @@
-from redshells.factory.prediction_model_factory import create_prediction_model, register_prediction_model
+from redshells.factory.prediction_model_factory import create_prediction_model, register_prediction_model, get_prediction_model_type

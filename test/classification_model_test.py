@@ -13,21 +13,21 @@ class _DummyTask(luigi.Task):
     pass
 
 
-class PairwiseSimilarityModelTest(unittest.TestCase):
+class ClassificationModelTest(unittest.TestCase):
     def setUp(self):
         self.input_data = None
         self.dump_data = None
         redshells.train.TrainClassificationModel.clear_instance_cache()
 
     def test_train(self):
-        data_size = 20
+        data_size = 200
         np.random.seed(1)
         features = [np.random.rand(3) for _ in range(data_size)]
         category = [np.random.choice(['a', 'b', 'c']) for _ in range(data_size)]
 
         self.input_data = pd.DataFrame(dict(features=features, category=category))
         task = redshells.train.TrainClassificationModel(
-            train_data_task=_DummyTask(), model_name='RandomForestClassifier')
+            train_data_task=_DummyTask(), model_name='RandomForestClassifier', model_kwargs=dict(n_estimators=10))
         task.load = MagicMock(side_effect=self._load)
         task.dump = MagicMock(side_effect=self._dump)
 
@@ -35,14 +35,17 @@ class PairwiseSimilarityModelTest(unittest.TestCase):
         self.assertIsInstance(self.dump_data, sklearn.ensemble.RandomForestClassifier)
 
     def test_cv(self):
-        data_size = 20
+        data_size = 200
         np.random.seed(1)
         features = [np.random.rand(3) for _ in range(data_size)]
         category = [np.random.choice(['a', 'b', 'c']) for _ in range(data_size)]
 
         self.input_data = pd.DataFrame(dict(features=features, category=category))
         task = redshells.train.ValidateClassificationModel(
-            train_data_task=_DummyTask(), model_name='RandomForestClassifier', cross_validation_size=3)
+            train_data_task=_DummyTask(),
+            model_name='RandomForestClassifier',
+            cross_validation_size=3,
+            model_kwargs=dict(n_estimators=10))
         task.load = MagicMock(side_effect=self._load)
         task.dump = MagicMock(side_effect=self._dump)
 

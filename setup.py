@@ -16,7 +16,9 @@ install_requires = [
     'pandas',
     'numpy',
     'gensim',
-    'sklearn',
+    'scikit-learn',
+    'tensorflow',
+    'tqdm',
 ]
 
 setup(
