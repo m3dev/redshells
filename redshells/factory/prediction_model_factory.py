@@ -29,6 +29,10 @@ class _PredictionModelFactory(metaclass=Singleton):
         self._models[key] = class_name
 
 
+def get_prediction_model_type(key):
+    return _PredictionModelFactory().get(key)
+
+
 def create_prediction_model(key: str, **kwargs):
     return _PredictionModelFactory().get(key)(**kwargs)
 

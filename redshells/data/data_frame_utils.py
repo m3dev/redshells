@@ -1,8 +1,8 @@
 import luigi
 from typing import List
-
 from typing import Dict
 
+import pandas as pd
 import gokart
 
 
@@ -13,7 +13,6 @@ class ExtractColumnAsList(gokart.TaskOnKart):
     task_namespace = 'redshells.data_frame_utils'
     data_task = gokart.TaskInstanceParameter(description='A task outputs pd.DataFrame.')
     column_name = luigi.Parameter()  # type: str
-    drop_na = luigi.BoolParameter(default=False)
     output_file_path = luigi.Parameter(default='data/extract_column_as_list.pkl')  # type: str
 
     def requires(self):
@@ -24,8 +23,6 @@ class ExtractColumnAsList(gokart.TaskOnKart):
 
     def run(self):
         data = self.load_data_frame(required_columns={self.column_name})
-        if self.drop_na:
-            data.dropna(subset={self.column_name}, inplace=True)
         self.dump(data[self.column_name].tolist())
 
 
@@ -37,7 +34,6 @@ class ExtractColumnAsDict(gokart.TaskOnKart):
     data_task = gokart.TaskInstanceParameter(description='A task outputs pd.DataFrame.')
     key_column_name = luigi.Parameter()  # type: str
     value_column_name = luigi.Parameter()  # type: str
-    drop_na = luigi.BoolParameter(default=False)
     output_file_path = luigi.Parameter(default='data/extract_column_as_dict.pkl')  # type: str
 
     def requires(self):
@@ -48,8 +44,6 @@ class ExtractColumnAsDict(gokart.TaskOnKart):
 
     def run(self):
         data = self.load_data_frame(required_columns={self.key_column_name, self.value_column_name})
-        if self.drop_na:
-            data.dropna(subset={self.key_column_name, self.value_column_name}, inplace=True)
         data.drop_duplicates(self.key_column_name, keep='first', inplace=True)
         self.dump(dict(zip(data[self.key_column_name].tolist(), data[self.value_column_name].tolist())))
 
@@ -61,7 +55,6 @@ class FilterByColumn(gokart.TaskOnKart):
     task_namespace = 'redshells.data_frame_utils'
     data_task = gokart.TaskInstanceParameter(description='A task outputs pd.DataFrame.')
     column_names = luigi.ListParameter()  # type: List[str]
-    drop_na = luigi.BoolParameter(default=False)
     output_file_path = luigi.Parameter(default='data/filter_by_column.pkl')  # type: str
 
     def requires(self):
@@ -72,8 +65,6 @@ class FilterByColumn(gokart.TaskOnKart):
 
     def run(self):
         data = self.load_data_frame(required_columns=set(self.column_names))
-        if self.drop_na:
-            data.dropna(subset=set(self.column_names), inplace=True)
         self.dump(data[list(self.column_names)])
 
 
@@ -84,7 +75,6 @@ class RenameColumn(gokart.TaskOnKart):
     task_namespace = 'redshells.data_frame_utils'
     data_task = gokart.TaskInstanceParameter(description='A task outputs pd.DataFrame.')
     rename_rule = luigi.DictParameter()  # type: Dict[str, str]
-    drop_na = luigi.BoolParameter(default=False)
     output_file_path = luigi.Parameter(default='data/rename_column.pkl')  # type: str
 
     def requires(self):
@@ -96,8 +86,6 @@ class RenameColumn(gokart.TaskOnKart):
     def run(self):
         column_names = set(list(self.rename_rule.keys()))
         data = self.load_data_frame(required_columns=column_names)
-        if self.drop_na:
-            data.dropna(subset=column_names, inplace=True)
         self.dump(data.rename(columns=dict(self.rename_rule)))
 
 
@@ -111,7 +99,6 @@ class GroupByColumnAsDict(gokart.TaskOnKart):
     data_task = gokart.TaskInstanceParameter(description='A task outputs pd.DataFrame.')
     key_column_name = luigi.Parameter()  # type: str
     value_column_name = luigi.Parameter()  # type: str
-    drop_duplicate = luigi.BoolParameter(default=False)
     output_file_path = luigi.Parameter(default='data/group_by_column_as_dict.pkl')  # type: str
 
     def requires(self):
@@ -123,7 +110,51 @@ class GroupByColumnAsDict(gokart.TaskOnKart):
     def run(self):
         data = self.load_data_frame(required_columns={self.key_column_name, self.value_column_name})
         data.dropna(subset={self.key_column_name, self.value_column_name}, inplace=True)
-        if self.drop_duplicate:
-            data.drop_duplicates(subset={self.key_column_name, self.value_column_name}, inplace=True)
         result = data.groupby(by=self.key_column_name)[self.value_column_name].apply(list).to_dict()
         self.dump(result)
+
+
+class ConvertToOneHot(gokart.TaskOnKart):
+    """
+    Convert column values of `categorical_column_names` to one-hot.
+    """
+    task_namespace = 'redshells.data_frame_utils'
+    data_task = gokart.TaskInstanceParameter(description='A task outputs pd.DataFrame.')
+    categorical_column_names = luigi.ListParameter()  # type: List[str]
+    output_file_path = luigi.Parameter(default='data/group_by_column_as_dict.pkl')  # type: str
+
+    def requires(self):
+        return self.data_task
+
+    def output(self):
+        return self.make_target(self.output_file_path)
+
+    def run(self):
+        categorical_column_names = list(self.categorical_column_names)
+        data = self.load_data_frame(required_columns=set(categorical_column_names))
+        result = pd.get_dummies(data[categorical_column_names])
+        result = result.merge(data.drop(categorical_column_names, axis=1), left_index=True, right_index=True)
+        self.dump(result)
+
+
+class ConvertTypeToCategory(gokart.TaskOnKart):
+    """
+    Convert column types to 'category'.
+    """
+    task_namespace = 'redshells.data_frame_utils'
+    data_task = gokart.TaskInstanceParameter(description='A task outputs pd.DataFrame.')
+    categorical_column_names = luigi.ListParameter()  # type: List[str]
+    output_file_path = luigi.Parameter(default='data/group_by_column_as_dict.pkl')  # type: str
+
+    def requires(self):
+        return self.data_task
+
+    def output(self):
+        return self.make_target(self.output_file_path)
+
+    def run(self):
+        categorical_column_names = list(self.categorical_column_names)
+        data = self.load_data_frame(required_columns=set(categorical_column_names))
+        for c in self.categorical_column_names:
+            data[c] = data[c].astype('category')
+        self.dump(data)
