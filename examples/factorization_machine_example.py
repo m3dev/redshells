@@ -94,7 +94,7 @@ class SplitTrainTestData(gokart.TaskOnKart):
         return dict(train=self.make_target('criteo/train_data.pkl'), test=self.make_target('criteo/test_data.pkl'))
 
     def run(self):
-        data = self.load()
+        data = self.load_data_frame()
         data = sklearn.utils.shuffle(data)
         train, test = sklearn.model_selection.train_test_split(data, test_size=self.test_size_rate)
         self.dump(train, 'train')

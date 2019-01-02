@@ -3,6 +3,8 @@ from typing import List
 from typing import Dict
 
 import pandas as pd
+import sklearn
+
 import gokart
 
 
@@ -158,3 +160,25 @@ class ConvertTypeToCategory(gokart.TaskOnKart):
         for c in self.categorical_column_names:
             data[c] = data[c].astype('category')
         self.dump(data)
+
+
+class SplitTrainTestData(gokart.TaskOnKart):
+    task_namespace = 'examples'
+    data_task = gokart.TaskInstanceParameter()
+    test_size_rate = luigi.FloatParameter()
+    train_output_file_path = luigi.Parameter(default='data/train_data.pkl')  # type: str
+    test_output_file_path = luigi.Parameter(default='data/test_data.pkl')  # type: str
+
+    def requires(self):
+        return self.data_task
+
+    def output(self):
+        return dict(
+            train=self.make_target(self.train_output_file_path), test=self.make_target(self.test_output_file_path))
+
+    def run(self):
+        data = self.load_data_frame()
+        data = sklearn.utils.shuffle(data)
+        train, test = sklearn.model_selection.train_test_split(data, test_size=self.test_size_rate)
+        self.dump(train, 'train')
+        self.dump(test, 'test')
