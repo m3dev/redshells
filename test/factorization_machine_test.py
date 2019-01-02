@@ -23,7 +23,7 @@ class FactorizationMachineTest(unittest.TestCase):
         self.assertEqual(graph.x2v2.shape.as_list(), [None, embedding_size])
         self.assertEqual(graph.second_order.shape.as_list(), [None])
         self.assertEqual(graph.y.shape.as_list(), [None])
-        self.assertEqual(len(graph.regularization), 3)
+        self.assertEqual(len(graph.regularization), 2)
         self.assertEqual(graph.loss.shape.as_list(), [])
 
     def test_fit_run_without_error(self):

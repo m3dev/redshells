@@ -1,6 +1,4 @@
 import itertools
-import os
-import sys
 from logging import getLogger
 from typing import Tuple
 
@@ -10,28 +8,9 @@ import sklearn
 import tensorflow as tf
 
 import redshells
+from redshells.model.early_stopping import EarlyStopping
 
 logger = getLogger(__name__)
-
-
-class EarlyStopping(object):
-    def __init__(self, save_directory: str = None):
-        self.save_path = os.path.join(save_directory, 'model.ckpt') if save_directory else None
-        if self.save_path:
-            self.saver = tf.train.Saver()
-            self.last_value = sys.float_info.max
-
-    def does_stop(self, value, session: tf.Session) -> bool:
-        if self.save_path is None:
-            return False
-
-        if self.last_value < value:
-            self.saver.restore(session, self.save_path)
-            return True
-
-        self.last_value = value
-        self.saver.save(session, self.save_path)
-        return False
 
 
 class FactorizationMachineGraph(object):
@@ -49,7 +28,7 @@ class FactorizationMachineGraph(object):
             self.input_y = tf.placeholder(dtype=np.float, shape=[None], name='input_y')
 
             regularizer = tf.contrib.layers.l2_regularizer(l2_weight)
-            self.bias = tf.get_variable(name='bias', shape=[1], trainable=True, regularizer=regularizer)
+            self.bias = tf.get_variable(name='bias', shape=[1], trainable=True)
             self.w_embedding = tf.keras.layers.Embedding(
                 input_dim=feature_kind_size, output_dim=1, embeddings_regularizer=regularizer, name='w')
             self.w = tf.squeeze(self.w_embedding(self.input_x_indices), [2])
@@ -64,13 +43,13 @@ class FactorizationMachineGraph(object):
             self.second_order = 0.5 * tf.reduce_sum(tf.subtract(self.xv2, self.x2v2), axis=1, name='2nd_order')
             self.y = tf.sigmoid(tf.add(self.bias, tf.add(self.first_order, self.second_order)), name='y')
 
-        self.regularization = tf.losses.get_regularization_losses(scope=scope_name) + [
+        self.regularization = [
             self.w_embedding.embeddings_regularizer(self.w),
             self.v_embedding.embeddings_regularizer(self.v)
         ]
 
         self.loss = tf.add_n([tf.losses.mean_squared_error(self.input_y, self.y)] + self.regularization, name='loss')
-        self.error = tf.sqrt(tf.losses.mean_squared_error(self.input_y, self.y))
+        self.error = tf.sqrt(tf.losses.mean_squared_error(self.input_y, self.y), name='error')
 
         optimizer = tf.contrib.opt.LazyAdamOptimizer(learning_rate=learning_rate)
         self.op = optimizer.apply_gradients(optimizer.compute_gradients(self.loss))
@@ -135,11 +114,11 @@ class FactorizationMachine(sklearn.base.BaseEstimator):
             dataset = tf.data.Dataset.from_tensor_slices((x_values_train, x_indices_train, y_train))
             dataset = dataset.batch(self.batch_size)
             iterator = dataset.make_initializable_iterator()
+            next_batch = iterator.get_next()
 
             logger.info('start to optimize...')
             for i in range(self.epoch_size):
                 self.session.run(iterator.initializer)
-                next_batch = iterator.get_next()
 
                 train_loss = None
                 train_error = None
@@ -175,8 +154,9 @@ class FactorizationMachine(sklearn.base.BaseEstimator):
         if self.graph is None:
             RuntimeError('Please call fit first.')
 
+        x_values, x_indices = self._convert_x(x)
+
         with self.session.as_default():
-            x_values, x_indices = self._convert_x(x)
             feed_dict = {self.graph.input_x_values: x_values, self.graph.input_x_indices: x_indices}
             y = self.session.run(self.graph.y, feed_dict=feed_dict)
 
