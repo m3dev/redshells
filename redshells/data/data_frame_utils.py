@@ -163,7 +163,7 @@ class ConvertTypeToCategory(gokart.TaskOnKart):
 
 
 class SplitTrainTestData(gokart.TaskOnKart):
-    task_namespace = 'examples'
+    task_namespace = 'redshells.data_frame_utils'
     data_task = gokart.TaskInstanceParameter()
     test_size_rate = luigi.FloatParameter()
     train_output_file_path = luigi.Parameter(default='data/train_data.pkl')  # type: str
@@ -182,3 +182,21 @@ class SplitTrainTestData(gokart.TaskOnKart):
         train, test = sklearn.model_selection.train_test_split(data, test_size=self.test_size_rate)
         self.dump(train, 'train')
         self.dump(test, 'test')
+
+
+class SampleData(gokart.TaskOnKart):
+    task_namespace = 'redshells.data_frame_utils'
+    data_task = gokart.TaskInstanceParameter()
+    sample_size = luigi.IntParameter()
+    output_file_path = luigi.Parameter(default='data/sample_data.pkl')  # type: str
+
+    def requires(self):
+        return self.data_task
+
+    def output(self):
+        return self.make_target(self.output_file_path)
+
+    def run(self):
+        data = self.load_data_frame()
+        data = sklearn.utils.shuffle(data)
+        self.dump(data.head(n=self.sample_size))

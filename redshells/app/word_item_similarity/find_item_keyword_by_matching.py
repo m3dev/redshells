@@ -5,17 +5,20 @@ import pandas as pd
 import gokart
 
 
-class FindKeywordByMatching(gokart.TaskOnKart):
+class FindItemKeywordByMatching(gokart.TaskOnKart):
     """
     Find items which include keywords in its value of 'item_keyword_column_name'.
+    Output pd.DataFrame with columns [item_id, keyword].
     """
-    task_namespace = 'redshells'
+    task_namespace = 'redshells.word_item_similarity'
     target_keyword_task = gokart.TaskInstanceParameter(
-        description='A task outputs item data as type `pd.DataFrame` which has columns.')
-    item_task = gokart.TaskInstanceParameter(description='A task outputs keywords as type `List[Any]` or `Set[Any]`.')
+        description='A task outputs keywords as type `List[Any]` or `Set[Any]`.')
+    item_task = gokart.TaskInstanceParameter(
+        description='A task outputs item data as type `pd.DataFrame` which has `item_id_column_name`.')
     item_id_column_name = luigi.Parameter()  # type: str
     item_keyword_column_name = luigi.Parameter()  # type: str
-    output_file_path = luigi.Parameter(default='data/search_by_keyword_matching.pkl')  # type: str
+    output_file_path = luigi.Parameter(
+        default='app/word_item_similarity/find_item_by_keyword_matching.pkl')  # type: str
 
     def requires(self):
         return dict(keyword=self.target_keyword_task, item=self.item_task)
