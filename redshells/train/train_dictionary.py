@@ -6,6 +6,8 @@ import gensim
 import gokart
 import luigi
 
+import redshells
+
 
 class TrainDictionary(gokart.TaskOnKart):
     task_namespace = 'redshells'
@@ -24,7 +26,9 @@ class TrainDictionary(gokart.TaskOnKart):
         return self.make_target(self.output_file_path)
 
     def run(self):
-        texts = self.load()  # type: List[List[str]]
+        texts = self.load()  # type: List
+        if isinstance(texts[0], str):
+            texts = redshells.train.utils.TokenIterator(texts=texts)
         dictionary = gensim.corpora.Dictionary(texts)
         if len(self.dictionary_filter_kwargs):
             dictionary.filter_extremes(**self.dictionary_filter_kwargs)

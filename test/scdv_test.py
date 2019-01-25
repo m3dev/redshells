@@ -34,7 +34,7 @@ class SCDVTest(unittest.TestCase):
     def test_build_idf(self):
         dictionary = gensim.corpora.Dictionary(self._documents)
         vocabulary_size = len(dictionary.token2id)
-        idf = SCDV._build_idf(documents=self._documents, dictionary=dictionary)
+        idf = SCDV._build_idf(dictionary=dictionary)
         self.assertEqual(idf.shape, (vocabulary_size, ))
 
     def test_build_word_cluster_vectors(self):
@@ -84,17 +84,20 @@ class SCDVTest(unittest.TestCase):
         self.assertEqual(dv.shape, (len(self._documents), cluster_size * embedding_size))
 
     def test_build_sparse_threshold(self):
-        document_size = 7
+        dictionary = gensim.corpora.Dictionary(self._documents)
+        vocabulary_size = len(dictionary.token2id)
         embedding_size = 5
         cluster_size = 3
         sparsity_percentage = 0.1
 
         np.random.seed(954)
-        document_vectors = np.random.uniform(low=-1.0, size=(document_size, cluster_size * embedding_size))
-        threshold = SCDV._build_sparsity_threshold(document_vectors, sparsity_percentage)
+        word_topic_vectors = np.random.uniform(size=(vocabulary_size, cluster_size * embedding_size))
+        threshold = SCDV._build_sparsity_threshold(word_topic_vectors, dictionary, self._documents, sparsity_percentage)
         # Calculate expected values with a naive way.
-        average_max = np.average([np.max(document_vectors[d]) for d in range(document_size)])
-        average_min = np.average([np.min(document_vectors[d]) for d in range(document_size)])
+        document_vectors = SCDV._build_document_vectors(
+            word_topic_vectors=word_topic_vectors, dictionary=dictionary, documents=self._documents)
+        average_max = np.average([np.max(d) for d in document_vectors])
+        average_min = np.average([np.min(d) for d in document_vectors])
         expected = 0.5 * (np.abs(average_max) + np.abs(average_min)) * sparsity_percentage
 
         self.assertEqual(threshold, expected)

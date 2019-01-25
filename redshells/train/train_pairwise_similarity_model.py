@@ -8,6 +8,9 @@ import sklearn
 import gokart
 import redshells
 import redshells.train.utils
+from logging import getLogger
+
+logger = getLogger(__name__)
 
 
 class _PairwiseSimilarityModelTask(gokart.TaskOnKart):
@@ -15,8 +18,11 @@ class _PairwiseSimilarityModelTask(gokart.TaskOnKart):
         description='A task outputs a mapping from item to embedding. The output must have type=Dict[Any, np.ndarray].')
     similarity_data_task = gokart.TaskInstanceParameter(
         description=
-        'A task outputs a pd.DataFrame with columns={"item1", "item2", "similarity"}. "similarity" must be binary data.'
-    )
+        'A task outputs a pd.DataFrame with columns={`item0_column_name`, `item`_column_name`, `similarity_column_name`}. '
+        '`similarity_column_name` must be binary data.')
+    item0_column_name = luigi.Parameter()  # type: str
+    item1_column_name = luigi.Parameter()  # type: str
+    similarity_column_name = luigi.Parameter()  # type: str
     model_name = luigi.Parameter(
         default='XGBClassifier',
         description='A model name which has "fit" interface, and must be registered by "register_prediction_model".'
@@ -35,17 +41,27 @@ class _PairwiseSimilarityModelTask(gokart.TaskOnKart):
         return redshells.factory.create_prediction_model(self.model_name, **self.model_kwargs)
 
     def create_train_data(self):
+        logger.info('loading input data...')
         item2embedding = self.load('item2embedding')  # type: Dict[Any, np.ndarray]
-        similarity_data = self.load_data_frame('similarity_data', required_columns={'item1', 'item2', 'similarity'})
-        similarity_data['similarity'] = similarity_data['similarity'].astype(int)
+        similarity_data = self.load_data_frame(
+            'similarity_data',
+            required_columns={self.item0_column_name, self.item1_column_name, self.similarity_column_name})
+        logger.info(f'similarity_data size={similarity_data.shape}')
         similarity_data = sklearn.utils.shuffle(similarity_data)
-
+        logger.info('making features...')
+        similarity_data[self.similarity_column_name] = similarity_data[self.similarity_column_name].astype(int)
+        similarity_data = sklearn.utils.shuffle(similarity_data)
+        similarity_data = similarity_data[similarity_data[self.item0_column_name].isin(item2embedding)]
+        similarity_data = similarity_data[similarity_data[self.item1_column_name].isin(item2embedding)]
         x = np.array([
-            np.multiply(item2embedding[i1], item2embedding[i2])
-            for i1, i2 in zip(similarity_data['item1'].tolist(), similarity_data['item2'].tolist())
+            np.multiply(item2embedding[i1], item2embedding[i2]) for i1, i2 in zip(
+                similarity_data[self.item0_column_name].tolist(), similarity_data[self.item1_column_name].tolist())
         ])
 
-        y = similarity_data['similarity'].tolist()
+        y = similarity_data[self.similarity_column_name].tolist()
+
+        logger.info('done making train data.')
+        logger.info(f'size of x={len(x)}, {len(x[0])}')
         return x, y
 
 

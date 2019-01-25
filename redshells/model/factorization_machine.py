@@ -26,6 +26,7 @@ class FactorizationMachineGraph(object):
             self.input_x_indices = tf.placeholder(dtype=np.int32, shape=[None, input_size], name='input_x_indices')
             self.input_x_values = tf.placeholder(dtype=np.float32, shape=[None, input_size], name='input_x_values')
             self.input_y = tf.placeholder(dtype=np.float, shape=[None], name='input_y')
+            self.input_batch_size = tf.placeholder(dtype=np.float32, name='input_batch_size')
 
             regularizer = tf.contrib.layers.l2_regularizer(l2_weight)
             self.bias = tf.get_variable(name='bias', shape=[1], trainable=True)
@@ -44,8 +45,9 @@ class FactorizationMachineGraph(object):
             self.y = tf.sigmoid(tf.add(self.bias, tf.add(self.first_order, self.second_order)), name='y')
 
         self.regularization = [
-            self.w_embedding.embeddings_regularizer(self.w),
-            self.v_embedding.embeddings_regularizer(self.v)
+            # to reduce the dependency on the batch size and latent factor size.
+            self.w_embedding.embeddings_regularizer(self.w) / tf.sqrt(feature_kind_size * self.input_batch_size),
+            self.v_embedding.embeddings_regularizer(self.v) / tf.sqrt(feature_kind_size * self.input_batch_size)
         ]
 
         self.loss = tf.add_n([tf.losses.mean_squared_error(self.input_y, self.y)] + self.regularization, name='loss')
@@ -128,7 +130,8 @@ class FactorizationMachine(sklearn.base.BaseEstimator):
                         feed_dict = {
                             self.graph.input_x_values: x_values,
                             self.graph.input_x_indices: x_indices,
-                            self.graph.input_y: y_
+                            self.graph.input_y: y_,
+                            self.graph.input_batch_size: len(y_)
                         }
                         _, train_loss, train_error = self.session.run(
                             [self.graph.op, self.graph.loss, self.graph.error], feed_dict=feed_dict)
@@ -137,7 +140,8 @@ class FactorizationMachine(sklearn.base.BaseEstimator):
                         feed_dict = {
                             self.graph.input_x_values: x_values_test,
                             self.graph.input_x_indices: x_indices_test,
-                            self.graph.input_y: y_test
+                            self.graph.input_y: y_test,
+                            self.graph.input_batch_size: len(y_test)
                         }
                         test_loss, test_error, y = self.session.run([self.graph.loss, self.graph.error, self.graph.y],
                                                                     feed_dict=feed_dict)
@@ -146,7 +150,7 @@ class FactorizationMachine(sklearn.base.BaseEstimator):
                             f'epoch={i + 1}/{self.epoch_size}, loss={test_loss}, error={test_error}, auc={auc}.')
                         break
 
-                # check early stopping
+                # TODO
                 if early_stopping.does_stop(test_error, self.session):
                     break
 

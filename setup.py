@@ -19,6 +19,7 @@ install_requires = [
     'scikit-learn',
     'tensorflow',
     'tqdm',
+    'optuna==0.6.0'
 ]
 
 setup(

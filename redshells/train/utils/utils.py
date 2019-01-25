@@ -2,9 +2,13 @@ from collections import Iterable
 from logging import getLogger
 
 import numpy as np
+import optuna
 import pandas as pd
+import sklearn
 from sklearn.metrics import classification_report, accuracy_score, make_scorer
-from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import cross_val_score, train_test_split
+
+import redshells
 
 logger = getLogger(__name__)
 
@@ -14,6 +18,7 @@ def fit_model(task):
     model = task.create_model()
     model.fit(x, y)
     task.dump(model)
+    logger.info(logger.info(classification_report(y, model.predict(x))))
 
 
 def validate_model(task, cv: int) -> None:
@@ -30,6 +35,27 @@ def validate_model(task, cv: int) -> None:
 
     cross_val_score(model, x, y, cv=cv, scoring=make_scorer(_scoring))
     task.dump(scores)
+
+
+def optimize_model(task, param_name, test_size: float, binary=False) -> None:
+    x, y = task.create_train_data()
+
+    def objective(trial):
+        train_x, test_x, train_y, test_y = train_test_split(x, y, test_size=test_size)
+        param = redshells.factory.get_optuna_param(param_name, trial)
+        model = task.create_model()
+        model.set_params(**param)
+        model.fit(train_x, train_y)
+        predictions = model.predict(test_x)
+
+        if binary:
+            predictions = np.rint(predictions)
+
+        return 1.0 - sklearn.metrics.accuracy_score(test_y, predictions)
+
+    study = optuna.create_study()
+    study.optimize(objective, n_trials=100)
+    task.dump(dict(best_params=study.best_params, best_value=study.best_value))
 
 
 def _flatten(items):

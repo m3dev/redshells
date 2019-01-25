@@ -2,6 +2,8 @@ from typing import Any
 from typing import Dict
 
 import luigi
+import sklearn
+import tensorflow as tf
 
 import gokart
 from redshells.model import MatrixFactorization
@@ -19,7 +21,8 @@ class TrainMatrixFactorization(gokart.TaskOnKart):
     rating_column_name = luigi.Parameter(
         default='rating', description='The target column name to predict.')  # type: str
     model_kwargs = luigi.DictParameter(default=dict(), description='Arguments of the model.')  # type: Dict[str, Any]
-    output_file_path = luigi.Parameter(default='model/matrix_factorization.pkl')  # type: str
+    max_data_size = luigi.IntParameter(default=50000000)
+    output_file_path = luigi.Parameter(default='model/matrix_factorization.zip')  # type: str
 
     def requires(self):
         return self.train_data_task
@@ -29,9 +32,14 @@ class TrainMatrixFactorization(gokart.TaskOnKart):
             self.output_file_path, save_function=MatrixFactorization.save, load_function=MatrixFactorization.load)
 
     def run(self):
+        tf.reset_default_graph()
         df = self.load_data_frame(required_columns={
             self.user_column_name, self.item_column_name, self.service_column_name, self.rating_column_name
         })
+
+        df.drop_duplicates(subset=[self.user_column_name, self.item_column_name], inplace=True)
+        df = sklearn.utils.shuffle(df)
+        df = df.head(n=self.max_data_size)
 
         user_ids = df[self.user_column_name]
         item_ids = df[self.item_column_name]

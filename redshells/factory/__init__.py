@@ -1,1 +1,2 @@
+from redshells.factory.optuna_param_factory import get_optuna_param, register_optuna_param_rule
 from redshells.factory.prediction_model_factory import create_prediction_model, register_prediction_model, get_prediction_model_type
