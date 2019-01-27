@@ -5,6 +5,7 @@ from redshells.train.train_dictionary import TrainDictionary
 from redshells.train.train_doc2vec import TrainDoc2Vec
 from redshells.train.train_factorization_machine import TrainFactorizationMachine
 from redshells.train.train_fasttext import TrainFastText
+from redshells.train.train_graph_convolutional_matrix_completion import TrainGraphConvolutionalMatrixCompletion
 from redshells.train.train_matrix_factorization import TrainMatrixFactorization
 from redshells.train.train_pairwise_similarity_model import TrainPairwiseSimilarityModel
 from redshells.train.train_word2vec import TrainWord2Vec

@@ -24,7 +24,9 @@ class MatrixFactorizationTest(unittest.TestCase):
             reg_item=reg_item,
             reg_user=reg_user,
             scope_name=scope_name,
-            use_l2_upper_regularization=True)
+            use_l2_upper_regularization=True,
+            average=0.5,
+            standard_deviation=0.5)
 
         self.assertEqual(graph.item_biases.shape.as_list(), [None, 1])
         self.assertEqual(graph.user_biases.shape.as_list(), [None, 1])
