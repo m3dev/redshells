@@ -4,6 +4,7 @@ from typing import Any, Dict
 import luigi
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 
 import gokart
 
@@ -41,7 +42,7 @@ class CalculateWordItemSimilarity(gokart.TaskOnKart):
         items = np.array(list(item2embedding.keys()))
         results = pd.concat([
             self._find_top_similarity(model, word, embedding, items, item_embeddings)
-            for word, embedding in word2embedding.items()
+            for word, embedding in tqdm(word2embedding.items())
         ])
         self.dump(results.reset_index(drop=True))
 
