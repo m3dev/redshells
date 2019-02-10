@@ -11,15 +11,7 @@ with open('README.md') as f:
     long_description = readme_note + f.read()
 
 install_requires = [
-    'luigi',
-    'gokart',
-    'pandas',
-    'numpy',
-    'gensim',
-    'scikit-learn',
-    'tensorflow',
-    'tqdm',
-    'optuna==0.6.0'
+    'luigi', 'gokart', 'pandas', 'scipy', 'numpy', 'gensim', 'scikit-learn', 'tensorflow', 'tqdm', 'optuna==0.6.0'
 ]
 
 setup(

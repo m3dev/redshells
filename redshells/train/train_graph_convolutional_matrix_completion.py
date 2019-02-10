@@ -40,9 +40,11 @@ class TrainGraphConvolutionalMatrixCompletion(gokart.TaskOnKart):
         df = sklearn.utils.shuffle(df)
         df = df.head(n=self.max_data_size)
 
-        user_ids = df[self.user_column_name]
-        item_ids = df[self.item_column_name]
-        ratings = df[self.rating_column_name]
-        model = GraphConvolutionalMatrixCompletion(**self.model_kwargs)
-        model.fit(user_ids=user_ids, item_ids=item_ids, ratings=ratings)
+        user_ids = df[self.user_column_name].values
+        item_ids = df[self.item_column_name].values
+        ratings = df[self.rating_column_name].values
+
+        model = GraphConvolutionalMatrixCompletion(
+            user_ids=user_ids, item_ids=item_ids, ratings=ratings, **self.model_kwargs)
+        model.fit()
         self.dump(model)
