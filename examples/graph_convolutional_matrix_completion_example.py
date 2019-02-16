@@ -3,7 +3,6 @@ from logging import getLogger
 from typing import List
 
 import luigi
-import numpy as np
 import pandas as pd
 import sklearn
 import tensorflow as tf
@@ -53,7 +52,10 @@ class FilterNetflixData(gokart.TaskOnKart):
     data_size_rate = luigi.FloatParameter()
 
     def requires(self):
-        return [PreprocessNetflixData(text_data_file_path=path) for path in self.text_data_file_paths]
+        return [
+            PreprocessNetflixData(text_data_file_path=os.path.join(self.workspace_directory, path))
+            for path in self.text_data_file_paths
+        ]
 
     def output(self):
         return self.make_target('netflix/merged_data.pkl')
@@ -68,7 +70,7 @@ class FilterNetflixData(gokart.TaskOnKart):
 class GraphConvolutionalMatrixCompletionExample(gokart.TaskOnKart):
     task_namespace = 'examples'
     text_data_file_paths = luigi.ListParameter(
-        default=[f'./resources/netflix/combined_data_{i}.txt' for i in range(1, 5)])  # type: List[str]
+        default=[f'netflix/combined_data_{i}.txt' for i in range(1, 5)])  # type: List[str]
     data_size_rate = luigi.FloatParameter()
 
     def requires(self):
@@ -82,16 +84,18 @@ class GraphConvolutionalMatrixCompletionExample(gokart.TaskOnKart):
         train_data_task = redshells.data.LoadDataOfTask(data_task=data_task, target_name='train')
         test_data_task = redshells.data.LoadDataOfTask(data_task=data_task, target_name='test')
         validation_task = redshells.train.TrainGraphConvolutionalMatrixCompletion(
+            # rerun=True,
             train_data_task=train_data_task,
             user_column_name='user_id',
             item_column_name='item_id',
             rating_column_name='rating',
-            max_data_size=500000,
+            max_data_size=10000000,
             model_kwargs=dict(
                 encoder_hidden_size=500,
                 encoder_size=75,
+                dropout_rate=0.5,
                 learning_rate=1e-2,
-                batch_size=2**12,
+                batch_size=2**14,
                 epoch_size=100,
                 test_size=0.1,
                 scope_name='GraphConvolutionalMatrixCompletionExample',
@@ -126,7 +130,7 @@ class GraphConvolutionalMatrixCompletionExample(gokart.TaskOnKart):
 if __name__ == '__main__':
     # Please download Netflix data from https://www.kaggle.com/netflix-inc/netflix-prize-data, and copy combined_data_*.txt to resources/netflix/.
     luigi.configuration.add_config_path('./config/example.ini')
-    luigi.run([
+    gokart.run([
         'examples.GraphConvolutionalMatrixCompletionExample',
         '--data-size-rate',
         '1.0',
