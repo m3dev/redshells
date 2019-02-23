@@ -26,10 +26,12 @@ class TrainGraphConvolutionalMatrixCompletion(gokart.TaskOnKart):
         return self.train_data_task
 
     def output(self):
-        return self.make_model_target(
-            self.output_file_path,
-            save_function=GraphConvolutionalMatrixCompletion.save,
-            load_function=GraphConvolutionalMatrixCompletion.load)
+        return dict(
+            model=self.make_model_target(
+                self.output_file_path,
+                save_function=GraphConvolutionalMatrixCompletion.save,
+                load_function=GraphConvolutionalMatrixCompletion.load),
+            report=self.make_target('model_report/report.txt'))
 
     def run(self):
         tf.reset_default_graph()
@@ -46,5 +48,6 @@ class TrainGraphConvolutionalMatrixCompletion(gokart.TaskOnKart):
 
         model = GraphConvolutionalMatrixCompletion(
             user_ids=user_ids, item_ids=item_ids, ratings=ratings, **self.model_kwargs)
-        model.fit()
-        self.dump(model)
+        self.task_log['report'] = [str(self.model_kwargs)] + model.fit()
+        self.dump(self.task_log['report'], 'report')
+        self.dump(model, 'model')

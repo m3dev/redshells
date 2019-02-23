@@ -2,8 +2,8 @@ import unittest
 from unittest.mock import MagicMock
 
 import luigi
-import pandas as pd
 import numpy as np
+
 import redshells.app.word_item_similarity
 
 
