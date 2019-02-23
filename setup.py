@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 readme_note = """\
 .. note::
@@ -16,14 +16,14 @@ install_requires = [
 
 setup(
     name='redshells',
-    version='0.1.1',
+    version='0.1.2',
     description=
     'Tasks which are defined using gokart.TaskOnKart. The tasks can be used with data pipeline library "luigi".',
     long_description=long_description,
     author='M3, inc.',
     url='https://github.com/m3dev/redshells',
     license='MIT License',
-    packages=['redshells'],
+    packages=find_packages(),
     install_requires=install_requires,
     classifiers=[
         'Programming Language :: Python :: 3.7',
