@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "1d1595da0498a7663ad21dc2195e71639e4791ca20d8ed034de8a13246d14a61"
+            "sha256": "d440e5a40d8b1d0ecadc28cba7cb6c55912cf81fc1ee0f73a37e0c3fffef66be"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -257,10 +257,10 @@
         },
         "gokart": {
             "hashes": [
-                "sha256:abdd2c414b4fef26c6c21187fb492d6b5789f1b9b090093400804e7828ce7079"
+                "sha256:79c5a9ac71cb2e611d1aa9909b7e0cbb97fb6b0a72250c61b584f5b76f099f65"
             ],
             "index": "pypi",
-            "version": "==0.1.5"
+            "version": "==0.1.8"
         },
         "grpcio": {
             "hashes": [

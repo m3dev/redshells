@@ -8,7 +8,7 @@ coverage = "*"
 
 [packages]
 luigi = "*"
-gokart = "*"
+gokart = ">=0.1.8"
 pandas = "*"
 scipy = "*"
 numpy = "*"

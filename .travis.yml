@@ -8,9 +8,8 @@ install:
   - pip install pipenv
 
 script:
-  - pipenv install
-  - pipenv shell
-  - coverage run --include=./redshells/* -m unittest discover -v -s ./test/
+  - pipenv sync
+  - pipenv run coverage run --include=./redshells/* -m unittest discover -v -s ./test/
 
 after_success:
   - coveralls
