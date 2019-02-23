@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 import luigi
 import pandas as pd
 import xgboost
+from sklearn.ensemble import RandomForestClassifier
 
 from redshells.train import TrainPairwiseSimilarityModel
 
@@ -24,12 +25,17 @@ class TrainPairwiseSimilarityModelTest(unittest.TestCase):
             dict(item1=['i0', 'i0', 'i1'], item2=['i0', 'i1', 'i1'], similarity=[1, 0, 1]))
 
         task = TrainPairwiseSimilarityModel(
-            item2embedding_task=_DummyTask(), similarity_data_task=_DummyTask(), model_name='RandomForestClassifier')
+            item2embedding_task=_DummyTask(),
+            similarity_data_task=_DummyTask(),
+            model_name='RandomForestClassifier',
+            item0_column_name='item1',
+            item1_column_name='item2',
+            similarity_column_name='similarity')
         task.load = MagicMock(side_effect=self._load)
         task.dump = MagicMock(side_effect=self._dump)
 
         task.run()
-        self.assertIsInstance(self.dump_data, xgboost.XGBClassifier)
+        self.assertIsInstance(self.dump_data, RandomForestClassifier)
 
     def _load(self, *args, **kwargs):
         if 'target' in kwargs:
