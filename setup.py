@@ -10,20 +10,6 @@ readme_note = """\
 with open('README.md') as f:
     long_description = readme_note + f.read()
 
-install_requires = [
-    'luigi',
-    'gokart',
-    'pandas',
-    'scipy',
-    'numpy',
-    'gensim',
-    'scikit-learn',
-    'tensorflow',
-    'tqdm',
-    'optuna==0.6.0',
-    'xgboost',
-]
-
 setup(
     name='redshells',
     version='0.1.2',
@@ -34,7 +20,6 @@ setup(
     url='https://github.com/m3dev/redshells',
     license='MIT License',
     packages=find_packages(),
-    install_requires=install_requires,
     classifiers=[
         'Programming Language :: Python :: 3.7',
     ],

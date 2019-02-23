@@ -1,14 +1,14 @@
 language: python
-python: 3.6.4
+python: 3.6.7
 
 env:
   - BOTO_CONFIG=/dev/null
 
 install:
-  - pip install coveralls
+  - pip install pipenv
 
 script:
-  - python setup.py develop
+  - pipenv install
   - coverage run --include=./redshells/* -m unittest discover -v -s ./test/
 
 after_success:
