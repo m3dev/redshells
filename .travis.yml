@@ -9,6 +9,7 @@ install:
 
 script:
   - pipenv install
+  - pipenv shell
   - coverage run --include=./redshells/* -m unittest discover -v -s ./test/
 
 after_success:
