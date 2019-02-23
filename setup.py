@@ -12,7 +12,7 @@ with open('README.md') as f:
 
 setup(
     name='redshells',
-    version='0.1.2',
+    version='0.1.3',
     description=
     'Tasks which are defined using gokart.TaskOnKart. The tasks can be used with data pipeline library "luigi".',
     long_description=long_description,
