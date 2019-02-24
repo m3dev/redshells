@@ -19,6 +19,7 @@ tqdm = "*"
 optuna = "==0.6.0"
 xgboost = "*"
 boto = "*"
+pyyaml = ">=4.2b1"  # for security reason (you can remove if dependent libraries are updated)
 
 [requires]
 python_version = "3.6.7"
