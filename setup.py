@@ -24,8 +24,6 @@ install_requires = [
     'xgboost',
 ]
 
-test_requires = ['coverage']
-
 setup(
     name='redshells',
     version='0.1.4',
@@ -37,7 +35,6 @@ setup(
     license='MIT License',
     packages=find_packages(),
     install_requires=install_requires,
-    test_requires=test_requires,
     classifiers=[
         'Programming Language :: Python :: 3.7',
     ],
