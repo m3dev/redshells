@@ -12,7 +12,7 @@ with open('README.md') as f:
 
 install_requires = [
     'luigi',
-    'gokart>=0.1.10',
+    'gokart>=0.1.12',
     'pandas',
     'scipy',
     'numpy',
@@ -35,7 +35,5 @@ setup(
     license='MIT License',
     packages=find_packages(),
     install_requires=install_requires,
-    classifiers=[
-        'Programming Language :: Python :: 3.7',
-    ],
+    test_suite='test'
 )
