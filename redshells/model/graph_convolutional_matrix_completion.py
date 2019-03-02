@@ -20,7 +20,7 @@ def _dot(x, y, name: str, x_is_sparse: bool):
     return tf.matmul(x, y, name=name)
 
 
-def _make_weight_variable(shape, name: str):
+def _make_weight_variable(shape, name: str = None):
     init_range = np.sqrt(10.0 / sum(shape))
     initial = tf.random_uniform(shape=shape, minval=-init_range, maxval=init_range, dtype=tf.float32)
     return tf.Variable(initial, name=name)
@@ -43,9 +43,11 @@ class GraphConvolutionalMatrixCompletionGraph(object):
                  normalization_type: str,
                  user_feature: Optional[np.ndarray] = None,
                  item_feature: Optional[np.ndarray] = None,
+                 item_side_information: Optional[np.ndarray] = None,
                  scope_name: str = 'GraphConvolutionalMatrixCompletionGraph',
                  weight_sharing: bool = True,
-                 use_bias: bool = False) -> None:
+                 use_bias: bool = False,
+                 ignore_item_embedding: bool = False) -> None:
         logger.info(f'n_rating={n_rating}; n_user={n_user}; n_item={n_item}')
         user_feature_size = user_feature.shape[1] if user_feature is not None else n_user
         item_feature_size = item_feature.shape[1] if item_feature is not None else n_item
@@ -76,6 +78,8 @@ class GraphConvolutionalMatrixCompletionGraph(object):
             # feature
             self.user_feature = tf.constant(user_feature) if user_feature is not None else None
             self.item_feature = tf.constant(item_feature) if item_feature is not None else None
+            self.item_side_information = tf.constant(
+                item_side_information) if item_side_information is not None else None
 
             # adjusted adjacency matrix
             if normalization_type == 'symmetric':
@@ -132,7 +136,7 @@ class GraphConvolutionalMatrixCompletionGraph(object):
                 dropout=self.input_dropout,
                 weight_sharing=weight_sharing,
                 is_sparse=self.user_feature is None,
-                size=self.input_edge_size,
+                edge_size=self.input_edge_size,
                 prefix='item')
 
             self.user_encoder_hidden = self._encoder(
@@ -143,26 +147,39 @@ class GraphConvolutionalMatrixCompletionGraph(object):
                 dropout=self.input_dropout,
                 weight_sharing=weight_sharing,
                 is_sparse=self.item_feature is None,
-                size=self.input_edge_size,
+                edge_size=self.input_edge_size,
                 prefix='user')
 
             self.item_encoder = tf.matmul(self.item_encoder_hidden, self.common_encoder_weight)
             self.user_encoder = tf.matmul(self.user_encoder_hidden, self.common_encoder_weight)
 
+            if self.item_side_information is not None:
+                layer1 = tf.keras.layers.Dense(
+                    encoder_size, use_bias=True, activation='relu')(self.item_side_information)
+                layer2 = tf.keras.layers.Dense(encoder_size, use_bias=False, activation=None)(layer1)
+
+                if ignore_item_embedding:
+                    self.item_encoder = layer2
+                else:
+                    self.item_encoder = self.item_encoder + layer2
+
+            if use_bias:
+                item_bias = _make_weight_variable(shape=(n_item, n_rating), name='item_bias')
+                user_bias = _make_weight_variable(shape=(n_user, n_rating), name='user_bias')
+                self.item_encoder = tf.concat([self.item_encoder, item_bias], axis=1)
+                self.user_encoder = tf.concat([self.user_encoder, user_bias], axis=1)
+                encoder_size += n_rating
+
             # decoder
-            self.decoder_weight = [
-                _make_weight_variable(shape=(encoder_size, encoder_size), name=f'decoder_weight_{r}')
-                for r in range(n_rating)
-            ]
+            self.output = self._decoder(
+                encoder_size=encoder_size,
+                n_rating=n_rating,
+                user_encoder=self.user_encoder,
+                item_encoder=self.item_encoder,
+                input_user=self.input_user,
+                input_item=self.input_item)
 
-            user_encoder = tf.gather(self.user_encoder, self.input_user)
-            item_encoder = tf.gather(self.item_encoder, self.input_item)
-
-            output = [
-                tf.reduce_sum(tf.multiply(tf.matmul(user_encoder, w), item_encoder), axis=1)
-                for w in self.decoder_weight
-            ]
-            self.output = tf.stack(output, axis=1)
+            # output
             self.probability = tf.nn.softmax(self.output)
             self.expectation = tf.matmul(self.probability, tf.reshape(self.rating, shape=(-1, 1)))
             self.rmse = tf.sqrt(
@@ -179,11 +196,25 @@ class GraphConvolutionalMatrixCompletionGraph(object):
             optimizer = tf.train.AdamOptimizer(learning_rate=self.input_learning_rate)
             self.op = optimizer.apply_gradients(optimizer.compute_gradients(self.loss))
 
+    @staticmethod
+    def _decoder(encoder_size, n_rating, user_encoder, item_encoder, input_user, input_item):
+        user_encoder = tf.gather(user_encoder, input_user)
+        item_encoder = tf.gather(item_encoder, input_item)
+
+        decoder_weight = [
+            _make_weight_variable(shape=(encoder_size, encoder_size), name=f'decoder_weight_{r}')
+            for r in range(n_rating)
+        ]
+
+        output = [tf.reduce_sum(tf.multiply(tf.matmul(user_encoder, w), item_encoder), axis=1) for w in decoder_weight]
+        output = tf.stack(output, axis=1)
+        return output
+
     @classmethod
     def _encoder(cls, feature_size, encoder_hidden_size, n_rating, cx, is_sparse, dropout, weight_sharing, prefix,
-                 size):
+                 edge_size):
         if is_sparse:
-            cx = [cls._dropout_sparse(x, 1. - dropout, num_nonzero_elements=s) for x, s in zip(cx, size)]
+            cx = [cls._dropout_sparse(x, 1. - dropout, num_nonzero_elements=s) for x, s in zip(cx, edge_size)]
         else:
             cx = [tf.nn.dropout(x, rate=dropout) for x in cx]
 
@@ -199,7 +230,8 @@ class GraphConvolutionalMatrixCompletionGraph(object):
             _dot(cx[r], encoder_weight[r], name=f'{prefix}_encoder_hidden_{r}', x_is_sparse=is_sparse)
             for r in range(n_rating)
         ]
-        return tf.nn.relu(tf.reduce_sum(encoder_hidden, axis=0))
+        result = tf.nn.relu(tf.reduce_sum(encoder_hidden, axis=0))
+        return result
 
     @staticmethod
     def _node_dropout(x, keep_prob, size):
@@ -311,6 +343,7 @@ class GraphConvolutionalMatrixCompletion(object):
                  normalization_type: str,
                  weight_sharing: bool = True,
                  use_bias: bool = False,
+                 ignore_item_embedding: bool = False,
                  save_directory_path: str = None,
                  item_features: Optional[Dict[Any, np.ndarray]] = None) -> None:
         self.session = tf.Session()
@@ -329,6 +362,7 @@ class GraphConvolutionalMatrixCompletion(object):
         self.normalization_type = normalization_type
         self.weight_sharing = weight_sharing
         self.use_bias = use_bias
+        self.ignore_item_embedding = ignore_item_embedding
         self.save_directory_path = save_directory_path
         self.dataset = _Dataset(
             self.user_ids, self.item_ids, self.ratings, self.test_size, item_features=self.item_features)
@@ -450,7 +484,8 @@ class GraphConvolutionalMatrixCompletion(object):
             weight_sharing=self.weight_sharing,
             use_bias=self.use_bias,
             scope_name=self.scope_name,
-            item_feature=self.dataset.item_features)
+            item_side_information=self.dataset.item_features,
+            ignore_item_embedding=self.ignore_item_embedding)
 
     @staticmethod
     def _eliminate(matrix: sp.csr_matrix, user_indices, item_indices):
