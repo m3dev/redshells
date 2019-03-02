@@ -9,6 +9,14 @@ import gokart
 from redshells.model.graph_convolutional_matrix_completion import GraphConvolutionalMatrixCompletion
 
 
+class NoneTask(gokart.TaskOnKart):
+    def output(self):
+        return self.make_target('none.pkl')
+
+    def run(self):
+        self.dump(None)
+
+
 class TrainGraphConvolutionalMatrixCompletion(gokart.TaskOnKart):
     task_namespace = 'redshells'
     train_data_task = gokart.TaskInstanceParameter(
@@ -18,12 +26,13 @@ class TrainGraphConvolutionalMatrixCompletion(gokart.TaskOnKart):
     item_column_name = luigi.Parameter(default='item', description='The column name of item id')  # type: str
     rating_column_name = luigi.Parameter(
         default='rating', description='The target column name to predict.')  # type: str
+    item_feature_task = gokart.TaskInstanceParameter(default=NoneTask())
     model_kwargs = luigi.DictParameter(default=dict(), description='Arguments of the model.')  # type: Dict[str, Any]
     max_data_size = luigi.IntParameter(default=50000000)
     output_file_path = luigi.Parameter(default='model/graph_convolutional_matrix_completion.zip')  # type: str
 
     def requires(self):
-        return self.train_data_task
+        return dict(train_data=self.train_data_task, item_features=self.item_feature_task)
 
     def output(self):
         return dict(
@@ -36,7 +45,8 @@ class TrainGraphConvolutionalMatrixCompletion(gokart.TaskOnKart):
     def run(self):
         tf.reset_default_graph()
         df = self.load_data_frame(
-            required_columns={self.user_column_name, self.item_column_name, self.rating_column_name})
+            'train_data', required_columns={self.user_column_name, self.item_column_name, self.rating_column_name})
+        item_features = self.load('item_features')
 
         df.drop_duplicates(subset=[self.user_column_name, self.item_column_name], inplace=True)
         df = sklearn.utils.shuffle(df)
@@ -47,7 +57,7 @@ class TrainGraphConvolutionalMatrixCompletion(gokart.TaskOnKart):
         ratings = df[self.rating_column_name].values
 
         model = GraphConvolutionalMatrixCompletion(
-            user_ids=user_ids, item_ids=item_ids, ratings=ratings, **self.model_kwargs)
+            user_ids=user_ids, item_ids=item_ids, ratings=ratings, item_features=item_features, **self.model_kwargs)
         self.task_log['report'] = [str(self.model_kwargs)] + model.fit()
         self.dump(self.task_log['report'], 'report')
         self.dump(model, 'model')

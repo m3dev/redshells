@@ -1,5 +1,7 @@
+from builtins import sorted
+from collections import Counter
 from logging import getLogger
-from typing import List, Optional, Dict, Tuple
+from typing import List, Optional, Dict, Tuple, Any
 
 import numpy as np
 import scipy.sparse as sp
@@ -19,7 +21,7 @@ def _dot(x, y, name: str, x_is_sparse: bool):
 
 
 def _make_weight_variable(shape, name: str):
-    init_range = np.sqrt(6.0 / sum(shape))
+    init_range = np.sqrt(10.0 / sum(shape))
     initial = tf.random_uniform(shape=shape, minval=-init_range, maxval=init_range, dtype=tf.float32)
     return tf.Variable(initial, name=name)
 
@@ -42,16 +44,18 @@ class GraphConvolutionalMatrixCompletionGraph(object):
                  user_feature: Optional[np.ndarray] = None,
                  item_feature: Optional[np.ndarray] = None,
                  scope_name: str = 'GraphConvolutionalMatrixCompletionGraph',
-                 weight_sharing: bool = True) -> None:
+                 weight_sharing: bool = True,
+                 use_bias: bool = False) -> None:
         logger.info(f'n_rating={n_rating}; n_user={n_user}; n_item={n_item}')
-        user_feature_size = user_feature.shape[1] if user_feature else n_user
-        item_feature_size = item_feature.shape[1] if item_feature else n_item
+        user_feature_size = user_feature.shape[1] if user_feature is not None else n_user
+        item_feature_size = item_feature.shape[1] if item_feature is not None else n_item
 
         with tf.variable_scope(scope_name, reuse=tf.AUTO_REUSE):
             # placeholder
             self.input_learning_rate = tf.placeholder(dtype=np.float32, name='learning_rate')
             self.input_dropout = tf.placeholder(dtype=np.float32, name='learning_rate')
             self.input_label = tf.placeholder(dtype=np.int32, name='label')
+            self.input_label_weight = tf.placeholder(dtype=np.float32, name='label_weight')
             self.input_user = tf.placeholder(dtype=np.int32, name='user')
             self.input_item = tf.placeholder(dtype=np.int32, name='item')
             self.input_edge_size = [tf.placeholder(dtype=np.int32, name=f'edge_size_{r}') for r in range(n_rating)]
@@ -70,8 +74,8 @@ class GraphConvolutionalMatrixCompletionGraph(object):
             ]
             self.rating = tf.constant(rating.reshape((-1, 1)), dtype=np.float32)
             # feature
-            self.user_feature = tf.constant(user_feature) if user_feature else None
-            self.item_feature = tf.constant(item_feature) if item_feature else None
+            self.user_feature = tf.constant(user_feature) if user_feature is not None else None
+            self.item_feature = tf.constant(item_feature) if item_feature is not None else None
 
             # adjusted adjacency matrix
             if normalization_type == 'symmetric':
@@ -102,14 +106,14 @@ class GraphConvolutionalMatrixCompletionGraph(object):
 
             # C X
             # (n_user, item_feature_size)
-            if self.item_feature:
+            if self.item_feature is not None:
                 self.item_cx = [
                     tf.sparse_tensor_dense_matmul(m, self.item_feature) for m in self.adjusted_adjacency_matrix
                 ]
             else:
                 self.item_cx = self.adjusted_adjacency_matrix
             # (n_item, user_feature_size)
-            if self.user_feature:
+            if self.user_feature is not None:
                 self.user_cx = [
                     tf.sparse_matmul(m, self.user_feature) for m in self.adjusted_adjacency_matrix_transpose
                 ]
@@ -162,11 +166,14 @@ class GraphConvolutionalMatrixCompletionGraph(object):
             self.probability = tf.nn.softmax(self.output)
             self.expectation = tf.matmul(self.probability, tf.reshape(self.rating, shape=(-1, 1)))
             self.rmse = tf.sqrt(
-                tf.losses.mean_squared_error(self.expectation, tf.reshape(self.input_rating, shape=(-1, 1))))
+                tf.reduce_sum(
+                    tf.reshape(self.input_label_weight, shape=(-1, 1)) *
+                    tf.math.square(self.expectation - tf.reshape(tf.to_float(self.input_rating), shape=(-1, 1)))) /
+                tf.reduce_sum(self.input_label_weight))
 
             # loss
-            self.loss = tf.reduce_mean(
-                tf.nn.softmax_cross_entropy_with_logits_v2(logits=self.output, labels=self.input_label))
+            self.loss = tf.reduce_sum(self.input_label_weight * tf.nn.softmax_cross_entropy_with_logits_v2(
+                logits=self.output, labels=self.input_label)) / tf.reduce_sum(self.input_label_weight)
 
             # optimizer
             optimizer = tf.train.AdamOptimizer(learning_rate=self.input_learning_rate)
@@ -175,7 +182,11 @@ class GraphConvolutionalMatrixCompletionGraph(object):
     @classmethod
     def _encoder(cls, feature_size, encoder_hidden_size, n_rating, cx, is_sparse, dropout, weight_sharing, prefix,
                  size):
-        cx = [cls._dropout_sparse(x, 1. - dropout, num_nonzero_elements=s) for x, s in zip(cx, size)]
+        if is_sparse:
+            cx = [cls._dropout_sparse(x, 1. - dropout, num_nonzero_elements=s) for x, s in zip(cx, size)]
+        else:
+            cx = [tf.nn.dropout(x, rate=dropout) for x in cx]
+
         encoder_weight = [
             _make_weight_variable(shape=(feature_size, encoder_hidden_size), name=f'{prefix}_encoder_weight_{r}')
             for r in range(n_rating)
@@ -202,13 +213,25 @@ class GraphConvolutionalMatrixCompletionGraph(object):
         dropout_mask = tf.cast(tf.floor(random_tensor), dtype=tf.bool)
         return tf.sparse_retain(x, dropout_mask) / keep_prob
 
+    @staticmethod
+    def _dropout(x, keep_prob):
+        return tf.nn.dropout(x, rate=1 - keep_prob)
+
 
 class _Dataset(object):
-    def __init__(self, user_ids: np.ndarray, item_ids: np.ndarray, ratings: np.ndarray, test_size: float) -> None:
+    def __init__(self,
+                 user_ids: np.ndarray,
+                 item_ids: np.ndarray,
+                 ratings: np.ndarray,
+                 test_size: float,
+                 item_features: Optional[Dict[Any, np.ndarray]] = None) -> None:
         self.user2index = self._index_map(user_ids)
         self.item2index = self._index_map(item_ids)
         self.rating2index = self._index_map(ratings)
+        self.item_features = self._sort_features(
+            features=item_features, order_map=self.item2index) if item_features is not None else None
         self.ratings = ratings
+        self.weights = self._calculate_weights(ratings)
         self.user_indices = self._to_index(self.user2index, user_ids)
         self.item_indices = self._to_index(self.item2index, item_ids)
         self.rating_indices = self._to_index(self.rating2index, ratings)
@@ -230,7 +253,7 @@ class _Dataset(object):
         shuffle_idx = sklearn.utils.shuffle(list(range(int(np.sum(idx)))))
         one_hot = self._to_one_hot(self.rating_indices[idx][shuffle_idx])
         return self.user_indices[idx][shuffle_idx], self.item_indices[idx][shuffle_idx], one_hot, self.ratings[idx][
-            shuffle_idx]
+            shuffle_idx], self.weights[idx]
 
     def convert(self, user_ids: List, item_ids: List) -> Tuple[np.ndarray, np.ndarray]:
         def _to_indices(id2index, ids):
@@ -241,13 +264,20 @@ class _Dataset(object):
     def test_data(self):
         idx = ~self.train_indices
         one_hot = self._to_one_hot(self.rating_indices[idx])
-        return self.user_indices[idx], self.item_indices[idx], one_hot, self.ratings[idx]
+        return self.user_indices[idx], self.item_indices[idx], one_hot, self.ratings[idx], self.weights[idx]
 
     def rating(self):
         return np.array(sorted(self.rating2index.keys()))
 
     def _to_one_hot(self, ratings):
         return np.eye(len(self.rating2index))[ratings]
+
+    @staticmethod
+    def _calculate_weights(ratings: np.ndarray) -> np.ndarray:
+        rating_count = dict(Counter(ratings))
+        rating2weight = {r: len(ratings) / len(rating_count) / c for r, c in rating_count.items()}
+        # return np.array(list(map(rating2weight.get, ratings)))
+        return np.ones_like(ratings)
 
     @staticmethod
     def _index_map(x: np.ndarray) -> Dict:
@@ -257,6 +287,12 @@ class _Dataset(object):
     @staticmethod
     def _to_index(id2map, ids) -> np.ndarray:
         return np.array(list(map(id2map.get, ids)))
+
+    @staticmethod
+    def _sort_features(features: Dict[Any, np.ndarray], order_map: Dict) -> np.ndarray:
+        new_order, _ = zip(*list(sorted(order_map.items(), key=lambda x: x[1])))
+        sorted_features = np.array(list(map(features.get, new_order)))
+        return sorted_features.astype(np.float32)
 
 
 class GraphConvolutionalMatrixCompletion(object):
@@ -274,11 +310,14 @@ class GraphConvolutionalMatrixCompletion(object):
                  learning_rate: float,
                  normalization_type: str,
                  weight_sharing: bool = True,
-                 save_directory_path: str = None) -> None:
+                 use_bias: bool = False,
+                 save_directory_path: str = None,
+                 item_features: Optional[Dict[Any, np.ndarray]] = None) -> None:
         self.session = tf.Session()
         self.user_ids = user_ids
         self.item_ids = item_ids
         self.ratings = ratings
+        self.item_features = item_features
         self.encoder_hidden_size = encoder_hidden_size
         self.encoder_size = encoder_size
         self.test_size = test_size
@@ -289,24 +328,26 @@ class GraphConvolutionalMatrixCompletion(object):
         self.learning_rate = learning_rate
         self.normalization_type = normalization_type
         self.weight_sharing = weight_sharing
+        self.use_bias = use_bias
         self.save_directory_path = save_directory_path
-        self.dataset = _Dataset(self.user_ids, self.item_ids, self.ratings, self.test_size)
+        self.dataset = _Dataset(
+            self.user_ids, self.item_ids, self.ratings, self.test_size, item_features=self.item_features)
         self.graph = None
 
-    def fit(self) -> List[str]:
+    def fit(self, try_count=1, decay_speed=10.) -> List[str]:
         if self.graph is None:
             logger.info('making graph...')
             self.graph = self._make_graph()
             logger.info('done making graph')
 
         early_stopping = EarlyStopping(
-            try_count=3,
-            decay_speed=10,
+            try_count=try_count,
+            decay_speed=decay_speed,
             save_directory=self.save_directory_path,
             learning_rate=self.learning_rate,
             threshold=1e-4)
 
-        test_user_indices, test_item_indices, test_labels, test_ratings = self.dataset.test_data()
+        test_user_indices, test_item_indices, test_labels, test_ratings, test_weights = self.dataset.test_data()
         report = []
         with self.session.as_default():
             self.session.run(tf.global_variables_initializer())
@@ -322,7 +363,7 @@ class GraphConvolutionalMatrixCompletion(object):
                 self.session.run(iterator.initializer)
                 while True:
                     try:
-                        _user_indices, _item_indices, _labels, _ratings = self.session.run(next_batch)
+                        _user_indices, _item_indices, _labels, _ratings, _weights = self.session.run(next_batch)
                         _rating_adjacency_matrix = [
                             self._eliminate(matrix, _user_indices, _item_indices) for matrix in rating_adjacency_matrix
                         ]
@@ -333,6 +374,7 @@ class GraphConvolutionalMatrixCompletion(object):
                             self.graph.input_item: _item_indices,
                             self.graph.input_label: _labels,
                             self.graph.input_rating: _ratings,
+                            self.graph.input_label_weight: _weights
                         }
                         feed_dict.update({
                             g: _convert_sparse_matrix_to_sparse_tensor(m)
@@ -345,14 +387,15 @@ class GraphConvolutionalMatrixCompletion(object):
                         _, train_loss, train_rmse = self.session.run([self.graph.op, self.graph.loss, self.graph.rmse],
                                                                      feed_dict=feed_dict)
                         report.append(f'train: epoch={i + 1}/{self.epoch_size}, loss={train_loss}, rmse={train_rmse}.')
-                        logger.info(report[-1])
                     except tf.errors.OutOfRangeError:
+                        logger.info(report[-1])
                         feed_dict = {
                             self.graph.input_dropout: 0.0,
                             self.graph.input_user: test_user_indices,
                             self.graph.input_item: test_item_indices,
                             self.graph.input_label: test_labels,
-                            self.graph.input_rating: test_ratings
+                            self.graph.input_rating: test_ratings,
+                            self.graph.input_label_weight: test_weights
                         }
                         feed_dict.update({
                             g: _convert_sparse_matrix_to_sparse_tensor(m)
@@ -405,7 +448,9 @@ class GraphConvolutionalMatrixCompletion(object):
             encoder_hidden_size=self.encoder_hidden_size,
             encoder_size=self.encoder_size,
             weight_sharing=self.weight_sharing,
-            scope_name=self.scope_name)
+            use_bias=self.use_bias,
+            scope_name=self.scope_name,
+            item_feature=self.dataset.item_features)
 
     @staticmethod
     def _eliminate(matrix: sp.csr_matrix, user_indices, item_indices):
@@ -436,10 +481,12 @@ def main():
     n_users = 101
     n_items = 233
     n_data = 3007
+    n_features = 21
     adjacency_matrix = _make_sparse_matrix(n_users, n_items, n_data) + 2 * _make_sparse_matrix(n_users, n_items, n_data)
     user_ids = adjacency_matrix.tocoo().row
     item_ids = adjacency_matrix.tocoo().col
     ratings = adjacency_matrix.tocoo().data
+    item_features = dict(zip(range(n_items), np.random.uniform(size=(n_items, n_features))))
     encoder_hidden_size = 100
     encoder_size = 100
     scope_name = 'GraphConvolutionalMatrixCompletionGraph'
@@ -455,7 +502,9 @@ def main():
         epoch_size=10,
         learning_rate=0.01,
         dropout_rate=0.7,
-        normalization_type='symmetric')
+        normalization_type='symmetric',
+        item_features=item_features,
+        use_bias=True)
     for report in model.fit():
         print(report)
 
