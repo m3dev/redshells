@@ -19,7 +19,7 @@ install_requires = [
     'numpy',
     'gensim',
     'scikit-learn',
-    'tensorflow',
+    'tensorflow>=1.13.1',
     'tqdm',
     'optuna==0.6.0',
     'xgboost',
@@ -36,5 +36,4 @@ setup(
     license='MIT License',
     packages=find_packages(),
     install_requires=install_requires,
-    test_suite='test'
-)
+    test_suite='test')

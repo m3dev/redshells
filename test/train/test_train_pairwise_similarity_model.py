@@ -3,7 +3,6 @@ from unittest.mock import MagicMock
 
 import luigi
 import pandas as pd
-import xgboost
 from sklearn.ensemble import RandomForestClassifier
 
 from redshells.train import TrainPairwiseSimilarityModel
