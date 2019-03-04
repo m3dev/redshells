@@ -12,8 +12,7 @@ with open('README.md') as f:
 
 install_requires = [
     'luigi',
-    'gokart>=0.1.12',
-    'python-dateutil==2.7.5',
+    'gokart>=0.1.13',
     'pandas',
     'scipy',
     'numpy',
@@ -21,7 +20,7 @@ install_requires = [
     'scikit-learn',
     'tensorflow>=1.13.1',
     'tqdm',
-    'optuna==0.6.0',
+    'optuna>=0.6.0',
     'xgboost',
 ]
 
