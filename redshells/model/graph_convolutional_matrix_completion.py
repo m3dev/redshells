@@ -139,13 +139,13 @@ class GraphConvolutionalMatrixCompletionGraph(object):
             if self.user_side_information is not None:
                 layer = self._side_information_layer(
                     hidden_size=encoder_hidden_size, size=encoder_size, input_data=self.user_side_information)
-                layer = tf.gather(layer, self.input_user)
+                layer = tf.gather(layer, self.input_user_information)
                 self.user_encoder = self.user_encoder + layer
 
             if self.item_side_information is not None:
                 layer = self._side_information_layer(
                     hidden_size=encoder_hidden_size, size=encoder_size, input_data=self.item_side_information)
-                layer = tf.gather(layer, self.input_item)
+                layer = tf.gather(layer, self.input_item_information)
                 if ignore_item_embedding:
                     self.item_encoder = layer
                 else:
@@ -156,9 +156,7 @@ class GraphConvolutionalMatrixCompletionGraph(object):
                 encoder_size=encoder_size,
                 n_rating=n_rating,
                 user_encoder=self.user_encoder,
-                item_encoder=self.item_encoder,
-                input_user=self.input_user,
-                input_item=self.input_item)
+                item_encoder=self.item_encoder)
 
             # output
             self.probability = tf.nn.softmax(self.output)
@@ -190,7 +188,7 @@ class GraphConvolutionalMatrixCompletionGraph(object):
         return layer
 
     @classmethod
-    def _decoder(cls, encoder_size, n_rating, user_encoder, item_encoder, input_user, input_item):
+    def _decoder(cls, encoder_size, n_rating, user_encoder, item_encoder):
         weights = [cls._simple_layer(encoder_size, input_size=encoder_size).weights[0] for _ in range(n_rating)]
         output = [tf.reduce_sum(tf.multiply(tf.matmul(user_encoder, w), item_encoder), axis=1) for w in weights]
         output = tf.stack(output, axis=1)
@@ -403,6 +401,8 @@ class GraphConvolutionalMatrixCompletion(object):
                             self.graph.input_item: _item_indices,
                             self.graph.input_label: _labels,
                             self.graph.input_rating: _ratings,
+                            self.graph.input_user_information: _user_indices,
+                            self.graph.input_item_information: _item_indices,
                         }
                         feed_dict.update({
                             g: _convert_sparse_matrix_to_sparse_tensor(m)
@@ -423,6 +423,8 @@ class GraphConvolutionalMatrixCompletion(object):
                             self.graph.input_item: test_item_indices,
                             self.graph.input_label: test_labels,
                             self.graph.input_rating: test_ratings,
+                            self.graph.input_user_information: test_user_indices,
+                            self.graph.input_item_information: test_item_indices,
                         }
                         feed_dict.update({
                             g: _convert_sparse_matrix_to_sparse_tensor(m)
