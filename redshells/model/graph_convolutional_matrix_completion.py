@@ -133,26 +133,23 @@ class GraphConvolutionalMatrixCompletionGraph(object):
 
             self.item_encoder = self.common_encoder_layer(self.item_encoder_hidden)
             self.user_encoder = self.common_encoder_layer(self.user_encoder_hidden)
+            self.user_encoder = tf.gather(self.user_encoder, self.input_user)
+            self.item_encoder = tf.gather(self.item_encoder, self.input_item)
 
             if self.user_side_information is not None:
                 layer = self._side_information_layer(
                     hidden_size=encoder_hidden_size, size=encoder_size, input_data=self.user_side_information)
+                layer = tf.gather(layer, self.input_user)
                 self.user_encoder = self.user_encoder + layer
 
             if self.item_side_information is not None:
                 layer = self._side_information_layer(
                     hidden_size=encoder_hidden_size, size=encoder_size, input_data=self.item_side_information)
+                layer = tf.gather(layer, self.input_item)
                 if ignore_item_embedding:
                     self.item_encoder = layer
                 else:
                     self.item_encoder = self.item_encoder + layer
-
-            # if use_bias:
-            #     item_bias = _make_weight_variable(shape=(n_item, n_rating), name='item_bias')
-            #     user_bias = _make_weight_variable(shape=(n_user, n_rating), name='user_bias')
-            #     self.item_encoder = tf.concat([self.item_encoder, item_bias], axis=1)
-            #     self.user_encoder = tf.concat([self.user_encoder, user_bias], axis=1)
-            #     encoder_size += n_rating
 
             # decoder
             self.output = self._decoder(
@@ -194,9 +191,6 @@ class GraphConvolutionalMatrixCompletionGraph(object):
 
     @classmethod
     def _decoder(cls, encoder_size, n_rating, user_encoder, item_encoder, input_user, input_item):
-        user_encoder = tf.gather(user_encoder, input_user)
-        item_encoder = tf.gather(item_encoder, input_item)
-
         weights = [cls._simple_layer(encoder_size, input_size=encoder_size).weights[0] for _ in range(n_rating)]
         output = [tf.reduce_sum(tf.multiply(tf.matmul(user_encoder, w), item_encoder), axis=1) for w in weights]
         output = tf.stack(output, axis=1)
