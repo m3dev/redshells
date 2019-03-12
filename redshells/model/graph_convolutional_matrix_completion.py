@@ -51,6 +51,8 @@ class GraphConvolutionalMatrixCompletionGraph(object):
             self.input_label = tf.placeholder(dtype=np.int32, name='label')
             self.input_user = tf.placeholder(dtype=np.int32, name='user')
             self.input_item = tf.placeholder(dtype=np.int32, name='item')
+            self.input_user_information = tf.placeholder(dtype=np.int32, name='user_information')
+            self.input_item_information = tf.placeholder(dtype=np.int32, name='item_information')
             self.input_edge_size = [tf.placeholder(dtype=np.int32, name=f'edge_size_{r}') for r in range(n_rating)]
             self.input_rating = tf.placeholder(dtype=np.int32, name='rating')
             # shape=(n_user, n_item)
@@ -145,12 +147,12 @@ class GraphConvolutionalMatrixCompletionGraph(object):
                 else:
                     self.item_encoder = self.item_encoder + layer
 
-            if use_bias:
-                item_bias = _make_weight_variable(shape=(n_item, n_rating), name='item_bias')
-                user_bias = _make_weight_variable(shape=(n_user, n_rating), name='user_bias')
-                self.item_encoder = tf.concat([self.item_encoder, item_bias], axis=1)
-                self.user_encoder = tf.concat([self.user_encoder, user_bias], axis=1)
-                encoder_size += n_rating
+            # if use_bias:
+            #     item_bias = _make_weight_variable(shape=(n_item, n_rating), name='item_bias')
+            #     user_bias = _make_weight_variable(shape=(n_user, n_rating), name='user_bias')
+            #     self.item_encoder = tf.concat([self.item_encoder, item_bias], axis=1)
+            #     self.user_encoder = tf.concat([self.user_encoder, user_bias], axis=1)
+            #     encoder_size += n_rating
 
             # decoder
             self.output = self._decoder(
