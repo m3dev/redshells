@@ -109,7 +109,8 @@ class BuildWordItemSimilarity(gokart.TaskOnKart):
         description='A task which outputs `List[List[str]]` for FastText training.')
     use_only_title = luigi.BoolParameter(default=False)  # type: bool
     word_embedding_type = luigi.Parameter(
-        default='average', description='A type of word embedding in prediction. This must be "average" or "word"')  # type: str
+        default='average',
+        description='A type of word embedding in prediction. This must be "average" or "word"')  # type: str
 
     def __init__(self, *args, **kwargs) -> None:
         super(BuildWordItemSimilarity, self).__init__(*args, **kwargs)
@@ -133,7 +134,8 @@ class BuildWordItemSimilarity(gokart.TaskOnKart):
         text_data = self.text_data_task
 
         tfidf = redshells.train.TrainTfidf(
-            tokenized_text_data_task=redshells.data.data_frame_utils.ExtractColumnAsList(data_task=item_train_data, column_name='token'))
+            tokenized_text_data_task=redshells.data.data_frame_utils.ExtractColumnAsList(
+                data_task=item_train_data, column_name='token'))
 
         keyword_item_data = redshells.app.word_item_similarity.FindItemKeywordByMatching(
             target_keyword_task=word_data,
@@ -143,25 +145,33 @@ class BuildWordItemSimilarity(gokart.TaskOnKart):
             tfidf_task=tfidf,
             keep_top_rate=0.3)
         self.word2items = redshells.data.data_frame_utils.GroupByColumnAsDict(
-            data_task=keyword_item_data,
-            key_column_name='keyword',
-            value_column_name='item_id')
+            data_task=keyword_item_data, key_column_name='keyword', value_column_name='item_id')
 
         # train similarity model
         self.scdv = self._train_scdv(item_train_data, text_data)
         self.word2embedding = self._calculate_word2embedding(self.scdv, word_data)
-        self.item2embedding = self._calculate_item2embedding(self.scdv, self.word2embedding, item_train_data, use_only_title=self.use_only_title)
-        self.item2title_embedding = self._calculate_item2embedding(self.scdv, self.word2embedding, item_train_data, use_only_title=True)
+        self.item2embedding = self._calculate_item2embedding(
+            self.scdv, self.word2embedding, item_train_data, use_only_title=self.use_only_title)
+        self.item2title_embedding = self._calculate_item2embedding(
+            self.scdv, self.word2embedding, item_train_data, use_only_title=True)
         self.similarity_train_data = self._calculate_similarity_train_data(click_data, self.word2items)
         self.similarity_model = self._train_similarity_model(self.item2embedding, self.similarity_train_data)
         self.reduced_word2embedding = self._reduce_dimension(self.word2embedding, self.word2embedding)
-        self.filtered_word2items = self._filter_items(self.word2items, self.reduced_word2embedding, self.item2title_embedding, no_below=0.1)
+        self.filtered_word2items = self._filter_items(
+            self.word2items, self.reduced_word2embedding, self.item2title_embedding, no_below=0.1)
 
         # calculate similarity
-        self.word2average_embedding = self._calculate_word2average_embedding(word_data, self.filtered_word2items, self.item2embedding)
-        self.predict_item2embedding = self._calculate_item2embedding(self.scdv, self.word2embedding, item_predict_data, use_only_title=self.use_only_title)
-        embedding_map = {'word': self.reduced_word2embedding, 'average': self.word2average_embedding, 'item': self.item2embedding}
-        similarity = self._calculate_similarity(self.similarity_model, embedding_map[self.word_embedding_type], self.predict_item2embedding)
+        self.word2average_embedding = self._calculate_word2average_embedding(word_data, self.filtered_word2items,
+                                                                             self.item2embedding)
+        self.predict_item2embedding = self._calculate_item2embedding(
+            self.scdv, self.word2embedding, item_predict_data, use_only_title=self.use_only_title)
+        embedding_map = {
+            'word': self.reduced_word2embedding,
+            'average': self.word2average_embedding,
+            'item': self.item2embedding
+        }
+        similarity = self._calculate_similarity(self.similarity_model, embedding_map[self.word_embedding_type],
+                                                self.predict_item2embedding)
         return similarity
 
     def output(self):
@@ -303,5 +313,3 @@ class BuildWordItemSimilarity(gokart.TaskOnKart):
             word2embedding_task=word2embedding,
             item2title_embedding_task=item2title_embedding,
             no_below=no_below)
-
-

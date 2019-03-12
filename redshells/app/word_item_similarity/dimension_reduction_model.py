@@ -12,6 +12,7 @@ class DimensionReductionModel(object):
     """ Reduce the dimension of vector values with respect to its importance.
     The importance is calculated by sum of squared values.
     """
+
     def __init__(self, dimension_size: int) -> None:
         self.dimension_size = dimension_size
         self.top_n_indices = None
@@ -27,7 +28,8 @@ class DimensionReductionModel(object):
 class TrainDimensionReductionModel(gokart.TaskOnKart):
     """ Train :py:class: `DimensionReductionModel` from item2embedding data with type `Dict[Any, np.ndarray]`."""
     task_namespace = 'redshells.word_item_similarity'
-    item2embedding_task = gokart.TaskInstanceParameter(description='A task outputs item2embedding data with type = Dict[Any, np.ndarray].')
+    item2embedding_task = gokart.TaskInstanceParameter(
+        description='A task outputs item2embedding data with type = Dict[Any, np.ndarray].')
     dimension_size = luigi.IntParameter(description='the dimension of reduced vectors.')  # type: int
     output_file_path = luigi.Parameter(default='app/word_item_similarity/dimension_reduction_model.pkl')  # type: str
 
@@ -46,8 +48,10 @@ class TrainDimensionReductionModel(gokart.TaskOnKart):
 
 class ApplyDimensionReductionModel(gokart.TaskOnKart):
     task_namespace = 'redshells.word_item_similarity'
-    item2embedding_task = gokart.TaskInstanceParameter(description='A task outputs item2embedding data with type = Dict[Any, np.ndarray].')
-    dimension_reduction_model_task = gokart.TaskInstanceParameter(default='A task outputs a model instance of `DimensionReductionModel`.')
+    item2embedding_task = gokart.TaskInstanceParameter(
+        description='A task outputs item2embedding data with type = Dict[Any, np.ndarray].')
+    dimension_reduction_model_task = gokart.TaskInstanceParameter(
+        default='A task outputs a model instance of `DimensionReductionModel`.')
     l2_normalize = luigi.BoolParameter()  # type: bool
     output_file_path = luigi.Parameter(default='app/word_item_similarity/dimension_reduction_model.pkl')  # type: str
 
