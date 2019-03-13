@@ -135,5 +135,5 @@ class GcmcDataset(object):
         feature_size = _get_feature_size(features.values())
         new_order, _ = zip(*list(sorted(order_map.items(), key=lambda x: x[1])))
         sorted_features = np.array(list(map(lambda x: features.get(x, np.zeros(feature_size)), new_order)))
-        sorted_features = np.vstack([sorted_features, np.zeros(feature_size)])
+        sorted_features = np.vstack([np.zeros(feature_size), sorted_features])
         return sorted_features.astype(np.float32)

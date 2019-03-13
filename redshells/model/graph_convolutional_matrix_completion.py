@@ -11,6 +11,7 @@ import tensorflow as tf
 import pandas as pd
 import redshells
 from redshells.model.early_stopping import EarlyStopping
+from redshells.model.gcmc_dataset import GcmcDataset
 
 logger = getLogger(__name__)
 
@@ -352,13 +353,14 @@ class GraphConvolutionalMatrixCompletion(object):
         self.use_bias = use_bias
         self.ignore_item_embedding = ignore_item_embedding
         self.save_directory_path = save_directory_path
-        self.dataset = GCMCDataset(
+        self.dataset = GcmcDataset(
             self.user_ids,
             self.item_ids,
             self.ratings,
             self.test_size,
             user_information=self.user_features,
-            item_information=self.item_features)
+            item_information=self.item_features,
+            min_user_click_count=5)
         self.graph = None
 
     def fit(self, try_count=1, decay_speed=10.) -> List[str]:
@@ -374,7 +376,7 @@ class GraphConvolutionalMatrixCompletion(object):
             learning_rate=self.learning_rate,
             threshold=1e-4)
 
-        test_user_indices, test_item_indices, test_labels, test_ratings = self.dataset.test_data()
+        test_data = self.dataset.test_data()
         report = []
         with self.session.as_default():
             self.session.run(tf.global_variables_initializer())
@@ -390,19 +392,20 @@ class GraphConvolutionalMatrixCompletion(object):
                 self.session.run(iterator.initializer)
                 while True:
                     try:
-                        _user_indices, _item_indices, _labels, _ratings = self.session.run(next_batch)
+                        train_data = self.session.run(next_batch)
                         _rating_adjacency_matrix = [
-                            self._eliminate(matrix, _user_indices, _item_indices) for matrix in rating_adjacency_matrix
+                            self._eliminate(matrix, train_data['user'], train_data['item'])
+                            for matrix in rating_adjacency_matrix
                         ]
                         feed_dict = {
                             self.graph.input_learning_rate: early_stopping.learning_rate,
                             self.graph.input_dropout: self.dropout_rate,
-                            self.graph.input_user: _user_indices,
-                            self.graph.input_item: _item_indices,
-                            self.graph.input_label: _labels,
-                            self.graph.input_rating: _ratings,
-                            self.graph.input_user_information: _user_indices,
-                            self.graph.input_item_information: _item_indices,
+                            self.graph.input_user: train_data['user'],
+                            self.graph.input_item: train_data['item'],
+                            self.graph.input_label: train_data['label'],
+                            self.graph.input_rating: train_data['rating'],
+                            self.graph.input_user_information: train_data['user_information'],
+                            self.graph.input_item_information: train_data['item_information'],
                         }
                         feed_dict.update({
                             g: _convert_sparse_matrix_to_sparse_tensor(m)
@@ -419,12 +422,12 @@ class GraphConvolutionalMatrixCompletion(object):
                         logger.info(report[-1])
                         feed_dict = {
                             self.graph.input_dropout: 0.0,
-                            self.graph.input_user: test_user_indices,
-                            self.graph.input_item: test_item_indices,
-                            self.graph.input_label: test_labels,
-                            self.graph.input_rating: test_ratings,
-                            self.graph.input_user_information: test_user_indices,
-                            self.graph.input_item_information: test_item_indices,
+                            self.graph.input_user: test_data['user'],
+                            self.graph.input_item: test_data['item'],
+                            self.graph.input_label: test_data['label'],
+                            self.graph.input_rating: test_data['rating'],
+                            self.graph.input_user_information: test_data['user_information'],
+                            self.graph.input_item_information: test_data['item_information'],
                         }
                         feed_dict.update({
                             g: _convert_sparse_matrix_to_sparse_tensor(m)
@@ -447,12 +450,14 @@ class GraphConvolutionalMatrixCompletion(object):
             RuntimeError('Please call fit first.')
 
         rating_adjacency_matrix = self.dataset.train_rating_adjacency_matrix()
-        user_indices, item_indices = self.dataset.convert(user_ids, item_ids)
+        user_indices, item_indices = self.dataset.to_indices(user_ids, item_ids)
         valid_indices = np.logical_and(user_indices != -1, item_indices != -1)
         feed_dict = {
             self.graph.input_dropout: 0.0,
             self.graph.input_user: user_indices[valid_indices],
             self.graph.input_item: item_indices[valid_indices],
+            self.graph.input_user_information: user_indices[valid_indices],
+            self.graph.input_item_information: item_indices[valid_indices],
         }
         feed_dict.update({
             g: _convert_sparse_matrix_to_sparse_tensor(m)
@@ -468,7 +473,7 @@ class GraphConvolutionalMatrixCompletion(object):
         return predictions
 
     def predict_item_scores(self, item_ids: List) -> pd.DataFrame:
-        user_ids = list(self.dataset.user2index.keys())
+        user_ids = list(self.dataset.user_id_map.id2index.keys())
         _test_users, _test_items = zip(*list(itertools.product(user_ids, item_ids)))
         predicts = self.predict(user_ids=_test_users, item_ids=_test_items)
         results = pd.DataFrame(dict(user=_test_users, item=_test_items, score=predicts))
@@ -477,9 +482,9 @@ class GraphConvolutionalMatrixCompletion(object):
 
     def _make_graph(self) -> GraphConvolutionalMatrixCompletionGraph:
         return GraphConvolutionalMatrixCompletionGraph(
-            n_rating=len(self.dataset.rating2index),
-            n_user=len(self.dataset.user2index),
-            n_item=len(self.dataset.item2index),
+            n_rating=len(self.dataset.rating_id_map.id2index),
+            n_user=len(self.dataset.user_id_map.id2index) + 1,  # TODO
+            n_item=len(self.dataset.item_id_map.id2index) + 1,  # TODO
             rating=self.dataset.rating(),
             normalization_type=self.normalization_type,
             encoder_hidden_size=self.encoder_hidden_size,
