@@ -93,23 +93,29 @@ class MultiresolutionGraphAttentionNetworksGraph(object):
                     return activation(h)
 
             def _attention(x, query, name):
-                values, _ = tf.nn.top_k(tf.transpose(x), k=5, sorted=True)
+                values, _ = tf.nn.top_k(tf.transpose(x), k=10, sorted=True)
                 softmax = tf.nn.softmax(tf.tensordot(query, values, axes=[2, 0]))
                 query_r = tf.keras.backend.batch_dot(query, softmax, axes=[1, 1])
                 query_r = tf.transpose(query_r, [0, 2, 1])
                 values = tf.stack([tf.transpose(values)]*batch_size)
                 return _cos_sim(query_r, values)
             
-            self.gcn_1 = _gcn_conv(item_feature, self.adjusted_adjacency_matrix, name='gcn_layer_1')
-            self.gcn_2 = _gcn_conv(self.gcn_1, self.adjusted_adjacency_matrix, name='gcn_layer_2')
-            self.gcn_3 = _gcn_conv(self.gcn_2, self.adjusted_adjacency_matrix, name='gcn_layer_3')
+            # Graph convolutional layers
+            num_layer = 2
+            gcn_li = []
+            h = item_feature
+            for l in range(num_layer):
+                h = _gcn_conv(h, self.adjusted_adjacency_matrix, name='gcn_layer_'+str(l+1))
+                gcn_li.append(h)
 
-            self.match_vector_1 = _attention(self.gcn_1, self.user_feature, name='attention_1')
-            self.match_vector_2 = _attention(self.gcn_2, self.user_feature, name='attention_2')
-            self.match_vector_3 = _attention(self.gcn_3, self.user_feature, name='attention_3')
+            # Attention layers
+            matching_vectors = []
+            for l in range(num_layer):
+                mv = _attention(gcn_li[l], self.user_feature, name='attention_'+str(l+1))
+                matching_vectors.append(mv)
 
-            #Rank-and-Pooling Layer 
-            selected = tf.stack([self.match_vector_1, self.match_vector_2, self.match_vector_3], axis=1)
+            # Rank-and-Pooling Layer 
+            selected = tf.stack(matching_vectors, axis=1)
             self.matching_score_vector = tf.layers.Flatten()(selected)
             self.output = tf.keras.layers.Dense(n_rating, use_bias=False)(self.matching_score_vector)
 
@@ -161,10 +167,10 @@ class _Dataset(object):
         m = sp.lil_matrix((num_n, num_n), dtype=np.float32)
         for i in range(num_n):
             for j in range(num_n):
-                if i==j: relevance = 0
-                else: relevance = 1./np.linalg.norm(self.item_features[i]-self.item_features[j])
-                if relevance > self.th_value:
-                    m[i,j] = relevance
+                if i==j: distance = 0
+                else: distance = np.linalg.norm(self.item_features[i]-self.item_features[j])
+                if distance < self.th_value:
+                    m[i,j] = 1./ (1. + distance)
                 else: m[i,j] = 0
         return m.tocsr()
 
@@ -177,7 +183,6 @@ class _Dataset(object):
     def convert(self, user_ids: List, item_ids: List) -> Tuple[np.ndarray, np.ndarray]:
         def _to_indices(id2index, ids):
             return np.array(list(map(lambda x: id2index.get(x, -1), ids)))
-
         return _to_indices(self.user2index, user_ids), _to_indices(self.item2index, item_ids)
 
     def test_data(self):
@@ -272,15 +277,15 @@ class MultiresolutionGraphAttentionNetworks(object):
             next_batch = iterator.get_next()
             adjacency_matrix = self.dataset.train_adjacency_matrix()
             print(adjacency_matrix)
-
+            test_rmse = 0.
             logger.info('start to optimize...')
-            for i in range(self.epoch_size):
+            for i in tqdm(range(self.epoch_size)):
                 self.session.run(iterator.initializer)
-                while True:
+                #while True:
+                for j in range(100):
                     try:
                         _user_indices, _item_indices, _labels, _ratings, _weights = self.session.run(next_batch)
                         _adjacency_matrix = self._eliminate(adjacency_matrix, _item_indices)
-
                         feed_dict = {
                             self.graph.input_learning_rate: early_stopping.learning_rate,
                             self.graph.input_dropout: self.dropout_rate,
@@ -288,18 +293,15 @@ class MultiresolutionGraphAttentionNetworks(object):
                             self.graph.input_item: _item_indices.reshape((-1, 1)),
                             self.graph.input_label: _labels,
                             self.graph.input_rating: _ratings.reshape((-1, 1)),
-                            self.graph.input_label_weight: _weights
-                        }
-                        feed_dict.update({
-                            self.graph.input_adjacency_matrix: _convert_sparse_matrix_to_sparse_tensor(_adjacency_matrix)
-                        })
-                        feed_dict.update({
+                            self.graph.input_label_weight: _weights,
+                            self.graph.input_adjacency_matrix: _convert_sparse_matrix_to_sparse_tensor(_adjacency_matrix),
                             self.graph.input_edge_size: _adjacency_matrix.count_nonzero()
-                        })
+                        }
                         _, train_loss, train_rmse = self.session.run([self.graph.op, self.graph.loss, self.graph.rmse],
                                                                      feed_dict=feed_dict)
                         report.append(f'train: epoch={i + 1}/{self.epoch_size}, loss={train_loss}, rmse={train_rmse}.')
-                    except tf.errors.OutOfRangeError:
+                        logger.info(f'train: epoch={i + 1}/{self.epoch_size}, loss={train_loss}, rmse={train_rmse}.')
+                    except (tf.errors.OutOfRangeError, ValueError):
                         logger.info(report[-1])
                         feed_dict = {
                             self.graph.input_dropout: 0.0,
@@ -307,14 +309,10 @@ class MultiresolutionGraphAttentionNetworks(object):
                             self.graph.input_item: test_item_indices.reshape((-1, 1)),
                             self.graph.input_label: test_labels,
                             self.graph.input_rating: test_ratings.reshape((-1, 1)),
-                            self.graph.input_label_weight: test_weights
-                        }
-                        feed_dict.update({
-                            self.graph.input_adjacency_matrix: _convert_sparse_matrix_to_sparse_tensor(adjacency_matrix)
-                        })
-                        feed_dict.update({
+                            self.graph.input_label_weight: test_weights,
+                            self.graph.input_adjacency_matrix: _convert_sparse_matrix_to_sparse_tensor(adjacency_matrix),
                             self.graph.input_edge_size: adjacency_matrix.count_nonzero()
-                        })
+                        }
                         test_loss, test_rmse = self.session.run([self.graph.loss, self.graph.rmse], feed_dict=feed_dict)
                         report.append(f'test: epoch={i + 1}/{self.epoch_size}, loss={test_loss}, rmse={test_rmse}.')
                         logger.info(report[-1])
@@ -335,13 +333,9 @@ class MultiresolutionGraphAttentionNetworks(object):
             self.graph.input_dropout: 0.0,
             self.graph.input_user: user_indices[valid_indices],
             self.graph.input_item: item_indices[valid_indices],
-        }
-        feed_dict.update({
-            self.graph.input_adjacency_matrix: _convert_sparse_matrix_to_sparse_tensor(adjacency_matrix)
-        })
-        feed_dict.update({
+            self.graph.input_adjacency_matrix: _convert_sparse_matrix_to_sparse_tensor(adjacency_matrix),
             self.graph.input_edge_size: adjacency_matrix.count_nonzero()
-        })
+        }
 
         with self.session.as_default():
             valid_predictions = self.session.run(self.graph.expectation, feed_dict=feed_dict)
