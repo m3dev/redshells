@@ -190,6 +190,8 @@ class GraphConvolutionalMatrixCompletionGraph(object):
 
     @classmethod
     def _decoder(cls, encoder_size, n_rating, user_encoder, item_encoder):
+        user_encoder = tf.nn.l2_normalize(user_encoder, axis=1)
+        item_encoder = tf.nn.l2_normalize(item_encoder, axis=1)
         weights = [cls._simple_layer(encoder_size, input_size=encoder_size).weights[0] for _ in range(n_rating)]
         output = [tf.reduce_sum(tf.multiply(tf.matmul(user_encoder, w), item_encoder), axis=1) for w in weights]
         output = tf.stack(output, axis=1)
