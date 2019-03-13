@@ -12,4 +12,5 @@ from redshells.train.train_pairwise_similarity_model import TrainPairwiseSimilar
 from redshells.train.train_tfidf import TrainTfidf
 from redshells.train.train_word2vec import TrainWord2Vec
 from redshells.train.train_scdv import TrainSCDV
+from redshells.train.train_mgan import TrainMultiresolutionGraphAttentionNetworks
 import redshells.train.utils

@@ -5,3 +5,4 @@ from redshells.model.matrix_factorization_model import MatrixFactorizationGraph,
 from redshells.model.scdv import SCDV
 import redshells.model.utils
 from redshells.model.tdidf import Tfidf
+from redshells.model.multiresolution_gan import MultiresolutionGraphAttentionNetworksGraph, MultiresolutionGraphAttentionNetworks
