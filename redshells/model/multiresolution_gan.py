@@ -281,8 +281,7 @@ class MultiresolutionGraphAttentionNetworks(object):
             logger.info('start to optimize...')
             for i in tqdm(range(self.epoch_size)):
                 self.session.run(iterator.initializer)
-                #while True:
-                for j in range(100):
+                while True:
                     try:
                         _user_indices, _item_indices, _labels, _ratings, _weights = self.session.run(next_batch)
                         _adjacency_matrix = self._eliminate(adjacency_matrix, _item_indices)
@@ -315,6 +314,7 @@ class MultiresolutionGraphAttentionNetworks(object):
                         }
                         test_loss, test_rmse = self.session.run([self.graph.loss, self.graph.rmse], feed_dict=feed_dict)
                         report.append(f'test: epoch={i + 1}/{self.epoch_size}, loss={test_loss}, rmse={test_rmse}.')
+                        logger.info(f'test: epoch={i + 1}/{self.epoch_size}, loss={test_loss}, rmse={test_rmse}.')
                         logger.info(report[-1])
                         break
 
@@ -322,27 +322,32 @@ class MultiresolutionGraphAttentionNetworks(object):
                     break
         return report
 
-    def predict(self):
+    def predict(self, user_ids: List, item_ids: List) -> np.ndarray:
         if self.graph is None:
             RuntimeError('Please call fit first.')
-
         adjacency_matrix = self.dataset.train_adjacency_matrix()
         user_indices, item_indices = self.dataset.convert(user_ids, item_ids)
         valid_indices = np.logical_and(user_indices != -1, item_indices != -1)
-        feed_dict = {
-            self.graph.input_dropout: 0.0,
-            self.graph.input_user: user_indices[valid_indices],
-            self.graph.input_item: item_indices[valid_indices],
-            self.graph.input_adjacency_matrix: _convert_sparse_matrix_to_sparse_tensor(adjacency_matrix),
-            self.graph.input_edge_size: adjacency_matrix.count_nonzero()
-        }
-
-        with self.session.as_default():
-            valid_predictions = self.session.run(self.graph.expectation, feed_dict=feed_dict)
-        valid_predictions = valid_predictions.flatten()
+        batch_predictions_arr = []
+        logger.info('Preddicting...')
+        for i in tqdm(range(np.sum(valid_indices)//self.batch_size)):
+            batch_ind = i*self.batch_size
+            feed_dict = {
+                self.graph.input_dropout: 0.0,
+                self.graph.input_user: user_indices[valid_indices][batch_ind:batch_ind+self.batch_size].reshape(-1, 1),
+                self.graph.input_item: item_indices[valid_indices][batch_ind:batch_ind+self.batch_size].reshape(-1, 1),
+                self.graph.input_adjacency_matrix: _convert_sparse_matrix_to_sparse_tensor(adjacency_matrix),
+                self.graph.input_edge_size: adjacency_matrix.count_nonzero()
+            }
+            with self.session.as_default():
+                try:
+                    batch_predictions = self.session.run(self.graph.expectation, feed_dict=feed_dict)
+                    batch_predictions_arr.append(batch_predictions)
+                except ValueError: pass
+        valid_predictions = np.array(batch_predictions_arr*2).flatten()
         valid_predictions = np.clip(valid_predictions, self.dataset.rating()[0], self.dataset.rating()[-1])
         predictions = np.ones(len(user_ids), dtype=np.float) * np.mean(valid_predictions)
-        predictions[valid_indices] = valid_predictions
+        predictions[valid_indices] = valid_predictions[:np.sum(valid_indices)]
         return predictions
     
     @staticmethod
