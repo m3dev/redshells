@@ -110,7 +110,7 @@ class GraphConvolutionalMatrixCompletionGraph(object):
             self.user_cx = self.adjusted_adjacency_matrix_transpose
 
             # encoder
-            self.common_encoder_layer = self._simple_layer(encoder_size)
+            self.common_encoder_layer = self._simple_layer(encoder_size * n_rating)  # TODO
 
             self.item_encoder_hidden = self._encoder(
                 feature_size=n_user,
@@ -137,6 +137,8 @@ class GraphConvolutionalMatrixCompletionGraph(object):
             self.user_encoder = tf.gather(self.user_encoder, self.input_user)
             self.item_encoder = tf.gather(self.item_encoder, self.input_item)
 
+            # TODO
+            encoder_size = encoder_size * n_rating
             if self.user_side_information is not None:
                 layer = self._side_information_layer(
                     hidden_size=encoder_hidden_size, size=encoder_size, input_data=self.user_side_information)
@@ -209,7 +211,9 @@ class GraphConvolutionalMatrixCompletionGraph(object):
             tf.sparse_tensor_dense_matmul(cx[r], weights[r], name=f'{prefix}_encoder_hidden_{r}')
             for r in range(n_rating)
         ]
-        result = tf.nn.relu(tf.reduce_sum(encoder_hidden, axis=0))
+        # TODO
+        # result = tf.nn.relu(tf.reduce_sum(encoder_hidden, axis=0))
+        result = tf.nn.relu(tf.concat(encoder_hidden, axis=1))
         return result
 
     @staticmethod
@@ -447,19 +451,22 @@ class GraphConvolutionalMatrixCompletion(object):
                     break
         return report
 
-    def predict(self, user_ids: List, item_ids: List) -> np.ndarray:
+    def predict(self, user_ids: List, item_ids: List, with_user_embedding: bool = True) -> np.ndarray:
         if self.graph is None:
             RuntimeError('Please call fit first.')
 
         rating_adjacency_matrix = self.dataset.train_rating_adjacency_matrix()
         user_indices, item_indices = self.dataset.to_indices(user_ids, item_ids)
-        valid_indices = np.logical_and(user_indices != -1, item_indices != -1)
+        if not with_user_embedding:
+            user_indices = np.array([0] * len(user_indices))  # TODO use default user index.
+
+        user_information_indices, item_information_indices = self.dataset.to_information_indices(user_ids, item_ids)
         feed_dict = {
             self.graph.input_dropout: 0.0,
-            self.graph.input_user: user_indices[valid_indices],
-            self.graph.input_item: item_indices[valid_indices],
-            self.graph.input_user_information: user_indices[valid_indices],
-            self.graph.input_item_information: item_indices[valid_indices],
+            self.graph.input_user: user_indices,
+            self.graph.input_item: item_indices,
+            self.graph.input_user_information: user_information_indices,
+            self.graph.input_item_information: item_information_indices,
         }
         feed_dict.update({
             g: _convert_sparse_matrix_to_sparse_tensor(m)
@@ -467,17 +474,15 @@ class GraphConvolutionalMatrixCompletion(object):
         })
         feed_dict.update({g: m.count_nonzero() for g, m in zip(self.graph.input_edge_size, rating_adjacency_matrix)})
         with self.session.as_default():
-            valid_predictions = self.session.run(self.graph.expectation, feed_dict=feed_dict)
-        valid_predictions = valid_predictions.flatten()
-        valid_predictions = np.clip(valid_predictions, self.dataset.rating()[0], self.dataset.rating()[-1])
-        predictions = np.ones(len(user_ids), dtype=np.float) * np.mean(valid_predictions)
-        predictions[valid_indices] = valid_predictions
+            predictions = self.session.run(self.graph.expectation, feed_dict=feed_dict)
+        predictions = predictions.flatten()
+        predictions = np.clip(predictions, self.dataset.rating()[0], self.dataset.rating()[-1])
         return predictions
 
-    def predict_item_scores(self, item_ids: List) -> pd.DataFrame:
+    def predict_item_scores(self, item_ids: List, with_user_embedding: bool = True) -> pd.DataFrame:
         user_ids = list(self.dataset.user_id_map.id2index.keys())
         _test_users, _test_items = zip(*list(itertools.product(user_ids, item_ids)))
-        predicts = self.predict(user_ids=_test_users, item_ids=_test_items)
+        predicts = self.predict(user_ids=_test_users, item_ids=_test_items, with_user_embedding=with_user_embedding)
         results = pd.DataFrame(dict(user=_test_users, item=_test_items, score=predicts))
         results.sort_values('score', ascending=False, inplace=True)
         return results
