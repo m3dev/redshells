@@ -110,7 +110,7 @@ class GraphConvolutionalMatrixCompletionGraph(object):
             self.user_cx = self.adjusted_adjacency_matrix_transpose
 
             # encoder
-            self.common_encoder_layer = self._simple_layer(encoder_size * n_rating)  # TODO
+            self.common_encoder_layer = self._simple_layer(encoder_size)
 
             self.item_encoder_hidden = self._encoder(
                 feature_size=n_user,
@@ -137,8 +137,6 @@ class GraphConvolutionalMatrixCompletionGraph(object):
             self.user_encoder = tf.gather(self.user_encoder, self.input_user)
             self.item_encoder = tf.gather(self.item_encoder, self.input_item)
 
-            # TODO
-            encoder_size = encoder_size * n_rating
             if self.user_side_information is not None:
                 layer = self._side_information_layer(
                     hidden_size=encoder_hidden_size, size=encoder_size, input_data=self.user_side_information)
@@ -211,9 +209,7 @@ class GraphConvolutionalMatrixCompletionGraph(object):
             tf.sparse_tensor_dense_matmul(cx[r], weights[r], name=f'{prefix}_encoder_hidden_{r}')
             for r in range(n_rating)
         ]
-        # TODO
-        # result = tf.nn.relu(tf.reduce_sum(encoder_hidden, axis=0))
-        result = tf.nn.relu(tf.concat(encoder_hidden, axis=1))
+        result = tf.nn.relu(tf.reduce_sum(encoder_hidden, axis=0))
         return result
 
     @staticmethod
