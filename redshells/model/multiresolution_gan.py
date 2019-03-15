@@ -66,12 +66,14 @@ class MultiresolutionGraphAttentionNetworksGraph(object):
             tilde_degree_reverse_matrix = tf.diag(lmda + self.left_adjustment)
             sparse_matrix_a = tf.sparse.add(self.input_adjacency_matrix, tf.sparse.eye(n_item)*lmda)
             self.adjusted_adjacency_matrix = _matmul(tilde_degree_reverse_matrix, sparse_matrix_a, b_is_sparse=True)
+            self.rating = tf.constant(rating.reshape((-1, 1)), dtype=np.float32)
             make_shape = lambda x: tf.reshape(x, [batch_size, -1])
             self.input_user, self.input_item, self.input_rating = map(make_shape, [self.input_user, self.input_item, self.input_rating])
-            self.rating = tf.constant(rating.reshape((-1, 1)), dtype=np.float32)
-            
+
             if user_feature is not None:
-                self.user_feature = tf.constant(user_feature) 
+                multi_hot = tf.gather(user_feature, tf.reshape(self.input_user, [-1]))
+                embed_user_feature = tf.keras.layers.Dense(item_feature_size, use_bias=False)(multi_hot)
+                user_query = tf.expand_dims(embed_user_feature, axis=1)
             else:
                 self.user_feature = tf.keras.layers.Embedding(n_user, item_feature_size, input_length=1)(self.input_user)
 
@@ -92,7 +94,7 @@ class MultiresolutionGraphAttentionNetworksGraph(object):
                     h = _matmul(adj_matrix, _matmul(x, w))
                     if use_bias: h += b
                     return activation(h)
-
+            
             def _attention(x, query, name):
                 values, _ = tf.nn.top_k(tf.transpose(x), k=10, sorted=True)
                 softmax = tf.nn.softmax(tf.tensordot(query, values, axes=[2, 0]))
@@ -112,16 +114,18 @@ class MultiresolutionGraphAttentionNetworksGraph(object):
             # Attention layers
             matching_vectors = []
             for l in range(num_gcn_layer):
-                mv = _attention(gcn_li[l], self.user_feature, name='attention_'+str(l+1))
+                mv = _attention(gcn_li[l], user_query, name='attention_'+str(l+1))
                 matching_vectors.append(mv)
 
             # Rank-and-Pooling Layer 
             selected = tf.stack(matching_vectors, axis=1)
             self.matching_score_vector = tf.layers.Flatten()(selected)
-            self.output = tf.keras.layers.Dense(n_rating, use_bias=False)(self.matching_score_vector)
+            fc_out = tf.keras.layers.Dense(n_item*n_rating, use_bias=False)(self.matching_score_vector)
+            self.output_table = tf.reshape(fc_out, [batch_size, n_item, n_rating])
+            self.output = tf.batch_gather(self.output_table, tf.reshape(self.input_item, [-1, 1]))
 
             # output
-            self.probability = tf.nn.softmax(self.output)
+            self.probability = tf.nn.softmax(tf.squeeze(self.output))
             self.expectation = tf.matmul(self.probability, tf.reshape(self.rating, [-1, 1]))
             self.rmse = tf.sqrt(
                 tf.reduce_sum(
@@ -190,8 +194,8 @@ class _Dataset(object):
 
     def test_data(self):
         idx = ~self.train_indices
-        one_hot = self._to_one_hot(self.rating_indices[idx][self.batch_size])
-        return self.user_indices[idx][:self.batch_size], self.item_indices[idx][:self.batch_size], one_hot, self.ratings[idx][:self.batch_size], self.weights[idx][self.batch_size]
+        one_hot = self._to_one_hot(self.rating_indices[idx][:self.batch_size])
+        return self.user_indices[idx][:self.batch_size], self.item_indices[idx][:self.batch_size], one_hot, self.ratings[idx][:self.batch_size], self.weights[idx][:self.batch_size]
 
     def rating(self):
         return np.array(sorted(self.rating2index.keys()))
@@ -217,8 +221,13 @@ class _Dataset(object):
 
     @staticmethod
     def _sort_features(features: Dict[Any, np.ndarray], order_map: Dict) -> np.ndarray:
+        def _get_feature_size(values):
+            for v in (v for v in values if v is not None):
+                return len(v)
+            return 0
+        feature_size = _get_feature_size(features.values())
         new_order, _ = zip(*list(sorted(order_map.items(), key=lambda x: x[1])))
-        sorted_features = np.array(list(map(features.get, new_order)))
+        sorted_features = np.array(list(map(lambda x: features.get(x, np.zeros(feature_size)), new_order)))
         return sorted_features.astype(np.float32)
 
 class MultiresolutionGraphAttentionNetworks(object):
