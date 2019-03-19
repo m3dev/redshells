@@ -55,8 +55,8 @@ class GcmcDataset(object):
                  item_ids: np.ndarray,
                  ratings: np.ndarray,
                  test_size: float,
-                 user_information: Optional[Dict[Any, np.ndarray]] = None,
-                 item_information: Optional[Dict[Any, np.ndarray]] = None,
+                 user_information: Optional[List[Dict[Any, np.ndarray]]] = None,
+                 item_information: Optional[List[Dict[Any, np.ndarray]]] = None,
                  min_user_click_count: int = 0,
                  max_user_click_count: int = sys.maxsize) -> None:
         self.user_id_map = GcmcIdMap(user_ids, min_count=min_user_click_count, max_count=max_user_click_count)
@@ -123,10 +123,7 @@ class GcmcDataset(object):
         return np.eye(self.rating_id_map.index_count)[ratings]
 
     @staticmethod
-    def _sort_features(features: Dict[Any, np.ndarray], order_map: Dict) -> Optional[np.ndarray]:
-        if features is None:
-            return None
-
+    def _sort_features_impl(features: Dict[Any, np.ndarray], order_map: Dict) -> np.ndarray:
         def _get_feature_size(values):
             for v in (v for v in values if v is not None):
                 return len(v)
@@ -137,3 +134,9 @@ class GcmcDataset(object):
         sorted_features = np.array(list(map(lambda x: features.get(x, np.zeros(feature_size)), new_order)))
         sorted_features = np.vstack([np.zeros(feature_size), sorted_features])
         return sorted_features.astype(np.float32)
+
+    @classmethod
+    def _sort_features(cls, features: List[Dict[Any, np.ndarray]], order_map: Dict) -> List[np.ndarray]:
+        if features is None:
+            return []
+        return [cls._sort_features_impl(feature, order_map) for feature in features]
