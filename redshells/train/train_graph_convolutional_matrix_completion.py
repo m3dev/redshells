@@ -33,6 +33,7 @@ class TrainGraphConvolutionalMatrixCompletion(gokart.TaskOnKart):
     output_file_path = luigi.Parameter(default='model/graph_convolutional_matrix_completion.zip')  # type: str
     try_count = luigi.IntParameter(default=10)  # type: int
     decay_speed = luigi.FloatParameter(default=2.0)  # type: float
+    test_size = luigi.FloatParameter(default=0.2)  # type: float
     # data parameters
     min_user_click_count = luigi.IntParameter(default=5)  # type: int
     max_user_click_count = luigi.IntParameter(default=200)  # type: int
@@ -71,7 +72,7 @@ class TrainGraphConvolutionalMatrixCompletion(gokart.TaskOnKart):
             ratings=ratings,
             user_features=user_features,
             item_features=item_features,
-            test_size=0.2,  # TODO
+            test_size=self.test_size,
             **self.model_kwargs)
         self.task_log['report'] = [str(self.model_kwargs)] + model.fit(
             try_count=self.try_count, decay_speed=self.decay_speed)
