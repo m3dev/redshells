@@ -1,10 +1,7 @@
-import os
 import unittest
+from logging import getLogger
 
 import numpy as np
-import pandas as pd
-import tensorflow as tf
-from logging import getLogger, config
 
 from redshells.model.graph_convolutional_matrix_completion import GcmcDataset
 
@@ -31,8 +28,8 @@ class TestGCMCDataset(unittest.TestCase):
         item_ids = np.array([1, 2, 1, 2, 3])
         ratings = np.array([1, 0, 1, 0, 1])
         test_size = 0.0
-        user_information = {1: np.array([10, 11]), 2: np.array([20, 21])}
-        item_information = {1: np.array([10, 11, 12]), 2: np.array([20, 21, 22]), 3: np.array([30, 31, 32])}
+        user_information = [{1: np.array([10, 11]), 2: np.array([20, 21])}]
+        item_information = [{1: np.array([10, 11, 12]), 2: np.array([20, 21, 22]), 3: np.array([30, 31, 32])}]
         dataset = GcmcDataset(user_ids, item_ids, ratings, test_size, user_information, item_information)
         data = dataset.train_data()
         self.assertEqual(user_ids.shape, data['user'].shape)
@@ -47,8 +44,8 @@ class TestGCMCDataset(unittest.TestCase):
         item_ids = np.array([1, 2, 1, 2, 3, 1])
         ratings = np.array([1, 0, 1, 0, 1, 0])
         test_size = 0.0
-        user_information = {1: np.array([10, 11]), 2: np.array([20, 21]), 3: np.array([30, 31])}
-        item_information = {1: np.array([10, 11, 12]), 2: np.array([20, 21, 22]), 3: np.array([30, 31, 32])}
+        user_information = [{1: np.array([10, 11]), 2: np.array([20, 21]), 3: np.array([30, 31])}]
+        item_information = [{1: np.array([10, 11, 12]), 2: np.array([20, 21, 22]), 3: np.array([30, 31, 32])}]
         dataset = GcmcDataset(
             user_ids, item_ids, ratings, test_size, user_information, item_information, min_user_click_count=3)
         data = dataset.train_data()
