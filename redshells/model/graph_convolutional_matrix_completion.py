@@ -1,14 +1,12 @@
 import itertools
-from builtins import sorted
-from collections import Counter
 from logging import getLogger
-from typing import List, Optional, Dict, Tuple, Any
+from typing import List, Optional, Dict, Any
 
 import numpy as np
-import scipy.sparse as sp
-import sklearn
-import tensorflow as tf
 import pandas as pd
+import scipy.sparse as sp
+import tensorflow as tf
+
 import redshells
 from redshells.model.early_stopping import EarlyStopping
 from redshells.model.gcmc_dataset import GcmcDataset

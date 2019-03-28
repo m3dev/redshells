@@ -65,10 +65,8 @@ class GcmcDataset(object):
         self.user_indices = self.user_id_map.to_indices(user_ids)
         self.item_indices = self.item_id_map.to_indices(item_ids)
         self.rating_indices = self.rating_id_map.to_indices(ratings)
-        self.user_information = self._sort_features(
-            features=user_information, order_map=self.user_id_map.id2information_index)
-        self.item_information = self._sort_features(
-            features=item_information, order_map=self.item_id_map.id2information_index)
+        self.user_information = self._sort_features(features=user_information, order_map=self.user_id_map.id2information_index)
+        self.item_information = self._sort_features(features=item_information, order_map=self.item_id_map.id2information_index)
         self.user_information_indices = self.user_id_map.to_information_indices(user_ids)
         self.item_information_indices = self.item_id_map.to_information_indices(item_ids)
         self.ratings = ratings
@@ -83,9 +81,7 @@ class GcmcDataset(object):
 
     def train_rating_adjacency_matrix(self) -> List[sp.csr_matrix]:
         adjacency_matrix = self.train_adjacency_matrix()
-        return [
-            sp.csr_matrix(adjacency_matrix == r + 1., dtype=np.float32) for r in range(self.rating_id_map.index_count)
-        ]
+        return [sp.csr_matrix(adjacency_matrix == r + 1., dtype=np.float32) for r in range(self.rating_id_map.index_count)]
 
     def train_data(self):
         idx = self.train_indices
