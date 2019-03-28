@@ -65,7 +65,6 @@ class GraphConvolutionalMatrixCompletionExample(gokart.TaskOnKart):
                 normalization_type=normalization_type,
                 weight_sharing=True,
                 epoch_size=40,
-                test_size=0.2,
                 scope_name='GraphConvolutionalMatrixCompletionExample',
                 save_directory_path=os.path.join(self.local_temporary_directory,
                                                  'graph_convolutional_matrix_completion'),

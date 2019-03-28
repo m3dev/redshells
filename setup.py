@@ -19,7 +19,7 @@ install_requires = [
     'numpy',
     'gensim',
     'scikit-learn',
-    'tensorflow>=1.13.1',
+    'tensorflow>=1.13.1, <2.0',
     'tqdm',
     'optuna==0.6.0',
     'xgboost',
@@ -28,8 +28,7 @@ install_requires = [
 setup(
     name='redshells',
     version='0.1.5',
-    description=
-    'Tasks which are defined using gokart.TaskOnKart. The tasks can be used with data pipeline library "luigi".',
+    description='Tasks which are defined using gokart.TaskOnKart. The tasks can be used with data pipeline library "luigi".',
     long_description=long_description,
     author='M3, inc.',
     url='https://github.com/m3dev/redshells',

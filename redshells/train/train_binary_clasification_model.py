@@ -1,11 +1,8 @@
-from typing import Any
-from typing import Dict
-
-import luigi
-import sklearn
+from typing import Any, Dict
 
 import gokart
-from sklearn.model_selection import train_test_split
+import luigi
+import sklearn
 
 import redshells
 import redshells.train.utils
@@ -62,7 +59,8 @@ class OptimizeBinaryClassificationModel(_BinaryClassificationModelTask):
     output_file_path = luigi.Parameter(default='model/binary_classification_model.pkl')  # type: str
 
     def run(self):
-        redshells.train.utils.optimize_model(self, param_name=self.optuna_param_name, test_size=self.test_size, binary=True)
+        redshells.train.utils.optimize_model(
+            self, param_name=self.optuna_param_name, test_size=self.test_size, binary=True)
 
 
 class ValidateBinaryClassificationModel(_BinaryClassificationModelTask):

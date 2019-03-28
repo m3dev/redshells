@@ -9,7 +9,6 @@ logger = getLogger(__name__)
 
 
 class Tfidf(object):
-
     def __init__(self, dictionary: gensim.corpora.Dictionary, tokens: List[List[str]]) -> None:
         self.dictionary = dictionary
         self.tfidf = gensim.models.TfidfModel([dictionary.doc2bow(t) for t in tokens])
@@ -22,5 +21,3 @@ class Tfidf(object):
         tfidf_values = [sorted(v, key=itemgetter(1), reverse=True) for v in tfidf_values]
         tfidf_values = [v[:int(math.ceil(len(v) * keep_top_rate) + 1)] for v in tfidf_values]
         return tfidf_values
-
-
