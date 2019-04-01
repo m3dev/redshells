@@ -13,3 +13,4 @@ from redshells.train.train_tfidf import TrainTfidf
 from redshells.train.train_word2vec import TrainWord2Vec
 from redshells.train.train_scdv import TrainSCDV
 import redshells.train.utils
+from redshells.train.train_xgb_text_classifier_with_scdv import TrainXGBTextClassifierWithSCDV

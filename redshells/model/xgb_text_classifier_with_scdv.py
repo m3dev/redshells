@@ -2,16 +2,15 @@ from logging import getLogger
 from typing import Dict, List
 
 import numpy as np
-import redshells
 import xgboost
-from sklearn.utils import deprecated
+
+from redshells.model import SCDV
 
 logger = getLogger(__name__)
 
 
-@deprecated('Please use redshells.')
 class XGBTextClassifierWithSCDV(object):
-    def __init__(self, scdv: redshells.model.SCDV, valid_dimension_size: int, **xgboost_kwargs) -> None:
+    def __init__(self, scdv: SCDV, valid_dimension_size: int, **xgboost_kwargs) -> None:
         self._scdv = scdv
         self._valid_dimension_size = valid_dimension_size
         self._valid_indices = None  # type: List[int]
