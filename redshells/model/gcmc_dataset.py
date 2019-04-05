@@ -1,6 +1,6 @@
 from collections import Counter
 from logging import getLogger
-from typing import Optional, Dict, Any, Tuple, List
+from typing import Optional, Dict, Any, Tuple, List, NamedTuple
 
 import numpy as np
 import scipy.sparse as sp
@@ -10,7 +10,13 @@ import sys
 logger = getLogger(__name__)
 
 
-class GcmcIdMap(object):
+class GcmcRatingData(NamedTuple):
+    user_ids: np.ndarray
+    item_ids: np.ndarray
+    ratings: np.ndarray
+
+
+class IdMap(object):
     def __init__(self, ids: np.ndarray, min_count=0, max_count=sys.maxsize, use_default: bool = True) -> None:
         id_count = dict(Counter(ids))
         in_ids = sorted([i for i, c in id_count.items() if min_count <= c <= max_count])
@@ -51,45 +57,57 @@ class GcmcIdMap(object):
 
 class GcmcDataset(object):
     def __init__(self,
-                 user_ids: np.ndarray,
-                 item_ids: np.ndarray,
-                 ratings: np.ndarray,
+                 rating_data: GcmcRatingData,
                  test_size: float,
                  user_information: Optional[List[Dict[Any, np.ndarray]]] = None,
                  item_information: Optional[List[Dict[Any, np.ndarray]]] = None,
                  min_user_click_count: int = 0,
                  max_user_click_count: int = sys.maxsize) -> None:
-        self.user_id_map = GcmcIdMap(user_ids, min_count=min_user_click_count, max_count=max_user_click_count)
-        self.item_id_map = GcmcIdMap(item_ids)
-        self.rating_id_map = GcmcIdMap(ratings, use_default=False)
-        self.user_indices = self.user_id_map.to_indices(user_ids)
-        self.item_indices = self.item_id_map.to_indices(item_ids)
-        self.rating_indices = self.rating_id_map.to_indices(ratings)
-        self.user_information = self._sort_features(features=user_information, order_map=self.user_id_map.id2information_index)
-        self.item_information = self._sort_features(features=item_information, order_map=self.item_id_map.id2information_index)
+        user_ids = rating_data.user_ids
+        item_ids = rating_data.item_ids
+        ratings = rating_data.ratings
+        self.user_id_map = IdMap(user_ids, min_count=min_user_click_count, max_count=max_user_click_count)
+        self.item_id_map = IdMap(item_ids)
+        self.rating_id_map = IdMap(ratings, use_default=False)
+        self._user_indices = self.user_id_map.to_indices(user_ids)
+        self._item_indices = self.item_id_map.to_indices(item_ids)
+        self._rating_indices = self.rating_id_map.to_indices(ratings)
+        self.user_information = self._sort_features(
+            features=user_information, order_map=self.user_id_map.id2information_index)
+        self.item_information = self._sort_features(
+            features=item_information, order_map=self.item_id_map.id2information_index)
         self.user_information_indices = self.user_id_map.to_information_indices(user_ids)
         self.item_information_indices = self.item_id_map.to_information_indices(item_ids)
         self.ratings = ratings
         self.train_indices = np.random.uniform(0., 1., size=len(user_ids)) > test_size
 
-    def train_adjacency_matrix(self):
+    def _train_adjacency_matrix(self):
         m = sp.csr_matrix((self.user_id_map.index_count, self.item_id_map.index_count), dtype=np.float32)
         idx = self.train_indices
         # add 1 to rating_indices, because rating_indices starts with 0 and 0 is ignored in scr_matrix
-        m[self.user_indices[idx], self.item_indices[idx]] = self.rating_indices[idx] + 1.
+        m[self._user_indices[idx], self._item_indices[idx]] = self._rating_indices[idx] + 1.
         return m
 
     def train_rating_adjacency_matrix(self) -> List[sp.csr_matrix]:
-        adjacency_matrix = self.train_adjacency_matrix()
-        return [sp.csr_matrix(adjacency_matrix == r + 1., dtype=np.float32) for r in range(self.rating_id_map.index_count)]
+        adjacency_matrix = self._train_adjacency_matrix()
+        return [
+            sp.csr_matrix(adjacency_matrix == r + 1., dtype=np.float32) for r in range(self.rating_id_map.index_count)
+        ]
+
+    def add_ratings(self, additional_rating_data: GcmcRatingData) -> 'GcmcDataset':
+
+        pass
+
+    def add_item_features(self, additional_item_features: List[Dict[Any, np.ndarray]]) -> 'GcmcDataset':
+        pass
 
     def train_data(self):
         idx = self.train_indices
         shuffle_idx = sklearn.utils.shuffle(list(range(int(np.sum(idx)))))
         data = dict()
-        data['user'] = self.user_indices[idx][shuffle_idx]
-        data['item'] = self.item_indices[idx][shuffle_idx]
-        data['label'] = self._to_one_hot(self.rating_indices[idx][shuffle_idx])
+        data['user'] = self._user_indices[idx][shuffle_idx]
+        data['item'] = self._item_indices[idx][shuffle_idx]
+        data['label'] = self._to_one_hot(self._rating_indices[idx][shuffle_idx])
         data['rating'] = self.ratings[idx][shuffle_idx]
         data['user_information'] = self.user_information_indices[idx][shuffle_idx]
         data['item_information'] = self.item_information_indices[idx][shuffle_idx]
@@ -104,9 +122,9 @@ class GcmcDataset(object):
     def test_data(self):
         idx = ~self.train_indices
         data = dict()
-        data['user'] = self.user_indices[idx]
-        data['item'] = self.item_indices[idx]
-        data['label'] = self._to_one_hot(self.rating_indices[idx])
+        data['user'] = self._user_indices[idx]
+        data['item'] = self._item_indices[idx]
+        data['label'] = self._to_one_hot(self._rating_indices[idx])
         data['rating'] = self.ratings[idx]
         data['user_information'] = self.user_information_indices[idx]
         data['item_information'] = self.item_information_indices[idx]
