@@ -18,9 +18,8 @@ class SCDV(object):
 
     """
 
-    def __init__(self, documents: List[List[str]], cluster_size: int, sparsity_percentage: float,
-                 gaussian_mixture_kwargs: Dict[Any, Any], dictionary: gensim.corpora.Dictionary,
-                 w2v: Union[FastText, Word2Vec]) -> None:
+    def __init__(self, documents: List[List[str]], cluster_size: int, sparsity_percentage: float, gaussian_mixture_kwargs: Dict[Any, Any],
+                 dictionary: gensim.corpora.Dictionary, w2v: Union[FastText, Word2Vec]) -> None:
         """
 
         :param documents: documents for training.
@@ -39,8 +38,7 @@ class SCDV(object):
         assert self._word_embeddings.shape == (vocabulary_size, embedding_size)
 
         logger.info('_build_word_cluster_probabilities...')
-        self._word_cluster_probabilities = self._build_word_cluster_probabilities(self._word_embeddings, cluster_size,
-                                                                                  gaussian_mixture_kwargs)
+        self._word_cluster_probabilities = self._build_word_cluster_probabilities(self._word_embeddings, cluster_size, gaussian_mixture_kwargs)
         assert self._word_cluster_probabilities.shape == (vocabulary_size, cluster_size)
 
         logger.info('_build_idf...')
@@ -56,8 +54,7 @@ class SCDV(object):
         assert word_topic_vectors.shape == (vocabulary_size, (cluster_size * embedding_size))
 
         logger.info('_build_sparsity_threshold...')
-        self._sparse_threshold = self._build_sparsity_threshold(word_topic_vectors, self._dictionary, documents,
-                                                                sparsity_percentage)
+        self._sparse_threshold = self._build_sparsity_threshold(word_topic_vectors, self._dictionary, documents, sparsity_percentage)
 
     def infer_vector(self, new_documents: List[List[str]], l2_normalize: bool = True) -> np.ndarray:
         word_cluster_vectors = self._build_word_cluster_vectors(self._word_embeddings, self._word_cluster_probabilities)
@@ -74,8 +71,7 @@ class SCDV(object):
         return sklearn.preprocessing.normalize(embeddings, axis=1, norm='l2')
 
     @staticmethod
-    def _build_word_cluster_probabilities(word_embeddings: np.ndarray, cluster_size: int,
-                                          gaussian_mixture_parameters: Dict[Any, Any]) -> np.ndarray:
+    def _build_word_cluster_probabilities(word_embeddings: np.ndarray, cluster_size: int, gaussian_mixture_parameters: Dict[Any, Any]) -> np.ndarray:
         gm = GaussianMixture(n_components=cluster_size, **gaussian_mixture_parameters)
         gm.fit(word_embeddings)
         return gm.predict_proba(word_embeddings)
@@ -111,22 +107,20 @@ class SCDV(object):
         return wtv
 
     @staticmethod
-    def _build_document_vectors(word_topic_vectors: np.ndarray, dictionary: gensim.corpora.Dictionary,
-                                documents: List[List[str]]) -> np.ndarray:
+    def _build_document_vectors(word_topic_vectors: np.ndarray, dictionary: gensim.corpora.Dictionary, documents: List[List[str]]) -> np.ndarray:
         data = np.array([SCDV._calculate_document_vector(word_topic_vectors, dictionary, d) for d in documents])
         return data
 
     @staticmethod
-    def _calculate_document_vector(word_topic_vectors: np.ndarray, dictionary: gensim.corpora.Dictionary,
-                                   document: List[str]):
+    def _calculate_document_vector(word_topic_vectors: np.ndarray, dictionary: gensim.corpora.Dictionary, document: List[str]):
         doc2bow = dictionary.doc2bow(document)
         if len(doc2bow) > 0:
             return np.sum([word_topic_vectors[idx] * count for idx, count in doc2bow], axis=0)
         return np.zeros(word_topic_vectors.shape[1])
 
     @staticmethod
-    def _build_sparsity_threshold(word_topic_vectors: np.ndarray, dictionary: gensim.corpora.Dictionary,
-                                  documents: List[List[str]], sparsity_percentage) -> float:
+    def _build_sparsity_threshold(word_topic_vectors: np.ndarray, dictionary: gensim.corpora.Dictionary, documents: List[List[str]],
+                                  sparsity_percentage) -> float:
         # To reduce memory usage, I use generator.
         document_vectors = (SCDV._calculate_document_vector(word_topic_vectors, dictionary, d) for d in documents)
         min_max_averages = (0.5 * (np.abs(np.min(d)) + np.abs(np.max(d))) for d in document_vectors)
@@ -139,5 +133,6 @@ class SCDV(object):
         document_vectors[close_to_zero] = 0.0
         if not l2_normalize:
             return document_vectors
-
+        if len(document_vectors) == 0:
+            return document_vectors
         return sklearn.preprocessing.normalize(document_vectors, axis=1, norm='l2')

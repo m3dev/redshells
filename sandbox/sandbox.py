@@ -8,10 +8,10 @@ logger = getLogger(__name__)
 
 
 def main():
-    t = tf.constant([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
-    x = tf.slice(t, [0, 0], [2, 2])  # [[[3, 3, 3]]]
-    with tf.Session():
-        print(x.eval())
+    x = np.array([0, 1, 2])
+    y = np.array([3, 4])
+    z = np.concatenate([x, y])
+    print(z)
 
 
 if __name__ == '__main__':
