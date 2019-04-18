@@ -27,7 +27,7 @@ install_requires = [
 
 setup(
     name='redshells',
-    version='0.1.6',
+    version='0.1.7',
     description='Tasks which are defined using gokart.TaskOnKart. The tasks can be used with data pipeline library "luigi".',
     long_description=long_description,
     author='M3, inc.',
