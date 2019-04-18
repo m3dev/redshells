@@ -4,7 +4,7 @@ import numpy as np
 import scipy.sparse as sp
 
 from redshells.model import GraphConvolutionalMatrixCompletion
-from redshells.model.gcmc_dataset import GcmcDataset
+from redshells.model.gcmc_dataset import GcmcDataset, GcmcGraphDataset
 
 
 def _make_sparse_matrix(n, m, n_values):
@@ -26,15 +26,15 @@ class GraphConvolutionalMatrixCompletionTest(unittest.TestCase):
         item_ids = adjacency_matrix.tocoo().col
         ratings = adjacency_matrix.tocoo().data
         dataset = GcmcDataset(user_ids, item_ids, ratings)
+        graph_dataset = GcmcGraphDataset(dataset, test_size=0.1)
         encoder_hidden_size = 100
         encoder_size = 100
         scope_name = 'GraphConvolutionalMatrixCompletionGraph'
         model = GraphConvolutionalMatrixCompletion(
-            dataset=dataset,
+            graph_dataset=graph_dataset,
             encoder_hidden_size=encoder_hidden_size,
             encoder_size=encoder_size,
             scope_name=scope_name,
-            test_size=0.1,
             batch_size=1024,
             epoch_size=10,
             learning_rate=0.01,
@@ -58,15 +58,15 @@ class GraphConvolutionalMatrixCompletionTest(unittest.TestCase):
         ratings = adjacency_matrix.tocoo().data
         item_features = [{i: np.array([i]) for i in range(n_items)}]
         dataset = GcmcDataset(user_ids, item_ids, ratings, item_features=item_features)
+        graph_dataset = GcmcGraphDataset(dataset, test_size=0.1)
         encoder_hidden_size = 100
         encoder_size = 100
         scope_name = 'GraphConvolutionalMatrixCompletionGraph'
         model = GraphConvolutionalMatrixCompletion(
-            dataset=dataset,
+            graph_dataset=graph_dataset,
             encoder_hidden_size=encoder_hidden_size,
             encoder_size=encoder_size,
             scope_name=scope_name,
-            test_size=0.1,
             batch_size=1024,
             epoch_size=10,
             learning_rate=0.01,
