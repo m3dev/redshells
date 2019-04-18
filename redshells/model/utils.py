@@ -4,6 +4,8 @@ from logging import getLogger
 import sklearn
 import tensorflow as tf
 
+from gokart.file_processor import PickleFileProcessor
+
 logger = getLogger(__name__)
 
 
@@ -21,12 +23,12 @@ def _get_config(obj):
 def save_tf_session(obj, session: tf.Session, file_path: str):
     tf.train.Saver().save(sess=session, save_path=file_path)
     with open(file_path, 'wb') as f:
-        pickle.dump(_get_config(obj), f)
+        PickleFileProcessor().dump(_get_config(obj), f)
 
 
 def load_tf_session(cls, session: tf.Session, file_path: str, make_graph):
     with open(file_path, 'rb') as f:
-        model = cls(**pickle.load(f))
+        model = cls(**PickleFileProcessor().load(f))
     model.graph = make_graph(model)
     tf.train.Saver().restore(sess=session, save_path=file_path)
     model.session = session
