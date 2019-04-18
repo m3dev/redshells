@@ -12,7 +12,7 @@ with open('README.md') as f:
 
 install_requires = [
     'luigi',
-    'gokart>=0.1.12',
+    'gokart>=0.1.17',
     'python-dateutil==2.7.5',
     'pandas',
     'scipy',
