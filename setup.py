@@ -22,7 +22,6 @@ install_requires = [
     'tensorflow>=1.13.1, <2.0',
     'tqdm',
     'optuna==0.6.0',
-    'xgboost',
 ]
 
 setup(

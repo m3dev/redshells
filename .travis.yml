@@ -3,7 +3,6 @@ python: 3.6.7
 env:
 - BOTO_CONFIG=/dev/null
 install:
-  - sudo apt-get install libgomp1
   - pip install --upgrade pip
   - pip install coverage
 script:
