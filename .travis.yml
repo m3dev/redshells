@@ -4,6 +4,7 @@ env:
 - BOTO_CONFIG=/dev/null
 install:
   - pip install --upgrade pip
+  - apt-get install libgomp1
   - pip install coverage
 script:
   - coverage run --include=gokart setup.py test
