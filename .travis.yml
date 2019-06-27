@@ -3,8 +3,8 @@ python: 3.6.7
 env:
 - BOTO_CONFIG=/dev/null
 install:
+  - sudo apt-get install libgomp1
   - pip install --upgrade pip
-  - apt-get install libgomp1
   - pip install coverage
 script:
   - coverage run --include=gokart setup.py test
