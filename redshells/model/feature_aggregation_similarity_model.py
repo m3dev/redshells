@@ -130,6 +130,7 @@ class FeatureAggregationSimilarityModel(object):
             item_size: int,
             max_feature_index: int,
     ) -> None:
+        self.feature_size = feature_size
         graph = FeatureAggregationSimilarityGraph(
             feature_size=feature_size, embedding_size=embedding_size, item_size=item_size, max_feature_index=max_feature_index)
         self.model = tf.keras.models.Model(
