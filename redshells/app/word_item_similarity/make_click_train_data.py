@@ -27,8 +27,7 @@ class MakeClickTrainData(gokart.TaskOnKart):
         return self.make_target(self.output_file_path)
 
     def run(self):
-        data = self.load_data_frame(
-            required_columns={self.user_column_name, self.item_column_name, self.service_column_name})
+        data = self.load_data_frame(required_columns={self.user_column_name, self.item_column_name, self.service_column_name})
         data = pd.concat([self._make_click_data(grouped) for name, grouped in data.groupby(self.service_column_name)])
         logger.info('dumping...')
         self.dump(data)
@@ -56,9 +55,7 @@ class MakeClickTrainData(gokart.TaskOnKart):
         item2index = dict(zip(item_ids, list(range(len(item_ids)))))
         n_users = len(user_ids)
         n_items = len(item_ids)
-        positive_examples = set(
-            list(df[self.user_column_name].apply(user2index.get).values +
-                 df[self.item_column_name].apply(item2index.get).values * n_users))
+        positive_examples = set(list(df[self.user_column_name].apply(user2index.get).values + df[self.item_column_name].apply(item2index.get).values * n_users))
         n_positive_examples = len(positive_examples)
         logger.info('negative sampling...')
         negative_examples = set(np.random.randint(low=0, high=n_users * n_items, size=n_positive_examples * 2))
@@ -69,8 +66,7 @@ class MakeClickTrainData(gokart.TaskOnKart):
         negative_examples = negative_examples[:n_positive_examples]
 
         logger.info('making data frame...')
-        examples = pd.DataFrame(
-            dict(user_id=negative_examples % n_users, item_id=negative_examples // n_users, click=0))
+        examples = pd.DataFrame(dict(user_id=negative_examples % n_users, item_id=negative_examples // n_users, click=0))
         examples[self.user_column_name] = user_ids[examples[self.user_column_name].values]
         examples[self.item_column_name] = item_ids[examples[self.item_column_name].values]
         examples[self.service_column_name] = examples[self.item_column_name].apply(item2service.get)
