@@ -4,7 +4,7 @@ env:
 - BOTO_CONFIG=/dev/null
 install:
   - pip install --upgrade pip
-  - pip install coverage
+  - pip install coverage coveralls
 script:
   - coverage run --include=gokart setup.py test
 after_success:
