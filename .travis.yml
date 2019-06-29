@@ -4,11 +4,9 @@ env:
 - BOTO_CONFIG=/dev/null
 install:
   - pip install --upgrade pip
-  - pip install coverage coveralls
+  - pip install coverage
 script:
   - coverage run --include=gokart setup.py test
-after_success:
-- coveralls
 deploy:
   provider: pypi
   user: nishiba
