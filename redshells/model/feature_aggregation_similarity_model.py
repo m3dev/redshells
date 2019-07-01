@@ -139,10 +139,11 @@ class FeatureAggregationSimilarityModel(object):
         self.model.compile(optimizer=tf.train.AdamOptimizer(learning_rate), loss=tf.keras.losses.mse, metrics=[tf.keras.metrics.mse])
 
     def __getstate__(self):
-        return self.model.to_json(), self.model.get_weights(), self.embeddings.to_json(), self.embeddings.get_weights()
+        return self.feature_size, self.model.to_json(), self.model.get_weights(), self.embeddings.to_json(), self.embeddings.get_weights()
 
     def __setstate__(self, state):
-        json_config, weights, embedding_json_config, embedding_weights = state
+        feature_size, json_config, weights, embedding_json_config, embedding_weights = state
+        self.feature_size = feature_size
         self.model = tf.keras.models.model_from_json(json_config, custom_objects={'Clip': Clip, 'Average': Average})
         self.model.set_weights(weights)
         self.embeddings = tf.keras.models.model_from_json(embedding_json_config, custom_objects={'Clip': Clip, 'Average': Average})

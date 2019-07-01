@@ -20,12 +20,13 @@ class TrainFeatureAggregationSimilarityModel(gokart.TaskOnKart):
     test_size_rate = luigi.FloatParameter()  # type: float
     early_stopping_patience = luigi.IntParameter()  # type: int
     max_data_size = luigi.IntParameter()  # type: int
+    output_file_path = luigi.Parameter(default='model/feature_aggregation)similarity_model.pkl')  # type: str
 
     def requires(self):
         return self.dataset_task
 
     def output(self):
-        return self.make_target('star_space_similarity/model.pkl')
+        return self.make_target(self.output_file_path)
 
     def run(self):
         dataset = self.load()  # type: FeatureAggregationSimilarityDataset
