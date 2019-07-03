@@ -294,6 +294,11 @@ class GraphConvolutionalMatrixCompletion(object):
         return self._predict(
             user_ids=user_ids, item_ids=item_ids, with_user_embedding=with_user_embedding, graph=self.graph, dataset=dataset, session=self.session)
 
+    def get_user_feature(self, user_ids: List, item_ids: List, additional_dataset: GcmcDataset, with_user_embedding: bool = True) -> np.ndarray:
+        dataset = self.graph_dataset.add_dataset(additional_dataset, add_item=True)
+        return self._get_user_feature(
+            user_ids=user_ids, item_ids=item_ids, with_user_embedding=with_user_embedding, graph=self.graph, dataset=dataset, session=self.session)
+
     @classmethod
     def _predict(cls, user_ids: List, item_ids: List, with_user_embedding, graph: GraphConvolutionalMatrixCompletionGraph, dataset: GcmcGraphDataset,
                  session: tf.Session) -> np.ndarray:
@@ -313,6 +318,26 @@ class GraphConvolutionalMatrixCompletion(object):
         predictions = predictions.flatten()
         predictions = np.clip(predictions, dataset.rating()[0], dataset.rating()[-1])
         return predictions
+
+    @classmethod
+    def _get_user_feature(cls, user_ids: List, item_ids: List, with_user_embedding,
+                          graph: GraphConvolutionalMatrixCompletionGraph, dataset: GcmcGraphDataset,
+                          session: tf.Session) -> np.ndarray:
+        if graph is None:
+            RuntimeError('Please call fit first.')
+
+        rating_adjacency_matrix = dataset.train_rating_adjacency_matrix()
+        user_indices, item_indices = dataset.to_indices(user_ids, item_ids)
+        if not with_user_embedding:
+            user_indices = np.array([0] * len(user_indices))  # TODO use default user index.
+
+        user_feature_indices, item_feature_indices = dataset.to_feature_indices(user_ids, item_ids)
+        input_data = dict(user=user_indices, item=item_indices, user_feature_indices=user_feature_indices,
+                          item_feature_indices=item_feature_indices)
+        feed_dict = cls._feed_dict(input_data, graph, dataset, rating_adjacency_matrix, is_train=False)
+        with session.as_default():
+            user_feature = session.run(graph.user_encoder, feed_dict=feed_dict)
+        return user_feature
 
     @staticmethod
     def _feed_dict(input_data, graph, graph_dataset, rating_adjacency_matrix, dropout_rate: float = 0.0, learning_rate: float = 0.0, is_train: bool = True):
@@ -349,6 +374,13 @@ class GraphConvolutionalMatrixCompletion(object):
         results = pd.DataFrame(dict(user=users, item=items, score=predicts))
         results.sort_values('score', ascending=False, inplace=True)
         return results
+
+    def get_user_feature_with_new_items(self, item_ids: List, additional_dataset: GcmcDataset, with_user_embedding: bool = True) -> pd.DataFrame:
+        user_ids = self.graph_dataset.user_ids
+        users, items = zip(*list(itertools.product(user_ids, item_ids)))
+        user_feature = self.get_user_feature(user_ids=users, item_ids=items, additional_dataset=additional_dataset, with_user_embedding=with_user_embedding)
+        indices = [i for i in range(len(users)) if i % len(item_ids) == 0]
+        return user_ids, user_feature[indices]
 
     def _make_graph(self) -> GraphConvolutionalMatrixCompletionGraph:
         return GraphConvolutionalMatrixCompletionGraph(
