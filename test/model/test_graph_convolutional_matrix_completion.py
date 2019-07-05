@@ -2,6 +2,7 @@ import unittest
 
 import numpy as np
 import scipy.sparse as sp
+from unittest.mock import patch
 
 from redshells.model import GraphConvolutionalMatrixCompletion
 from redshells.model.gcmc_dataset import GcmcDataset, GcmcGraphDataset
@@ -81,6 +82,39 @@ class GraphConvolutionalMatrixCompletionTest(unittest.TestCase):
         self.assertEqual(2, len(results))
         self.assertIsNotNone(results[0])
         self.assertIsNotNone(results[1])
+
+    @patch('redshells.model.GraphConvolutionalMatrixCompletion.get_user_feature')
+    def test_get_user_feature_with_new_items(self, dummy_get_user_feature):
+        n_users = 101
+        n_items = 233
+        n_data = 3007
+        am1 = _make_sparse_matrix(n_users, n_items, n_data)
+        am2 = 2 * _make_sparse_matrix(n_users, n_items, n_data)
+        adjacency_matrix = am1 + am2
+        user_ids = adjacency_matrix.tocoo().row
+        item_ids = adjacency_matrix.tocoo().col
+        ratings = adjacency_matrix.tocoo().data
+        item_features = [{i: np.array([i]) for i in range(n_items)}]
+        dataset = GcmcDataset(user_ids, item_ids, ratings, item_features=item_features)
+        graph_dataset = GcmcGraphDataset(dataset, test_size=0.1)
+        encoder_hidden_size = 100
+        encoder_size = 100
+        scope_name = 'GraphConvolutionalMatrixCompletionGraph'
+        model = GraphConvolutionalMatrixCompletion(
+            graph_dataset=graph_dataset,
+            encoder_hidden_size=encoder_hidden_size,
+            encoder_size=encoder_size,
+            scope_name=scope_name,
+            batch_size=1024,
+            epoch_size=10,
+            learning_rate=0.01,
+            dropout_rate=0.7,
+            normalization_type='symmetric')
+        n_user_embed_dimension = 50
+        dummy_get_user_feature.return_value = np.zeros((len(user_ids) * len(item_ids), n_user_embed_dimension))
+        user_features = model.get_user_feature_with_new_items(item_ids, additional_dataset=dataset, with_user_embedding=False)
+        self.assertEqual(len(user_features[0]), n_users)
+        self.assertEqual(user_features[1].shape, (n_users, n_user_embed_dimension))
 
 
 if __name__ == '__main__':
