@@ -85,8 +85,8 @@ class GraphConvolutionalMatrixCompletionTest(unittest.TestCase):
 
     @patch('redshells.model.GraphConvolutionalMatrixCompletion.get_user_feature')
     def test_get_user_feature_with_new_items(self, dummy_get_user_feature):
-        n_users = 101
-        n_items = 233
+        n_users = 10
+        n_items = 20
         n_data = 3007
         am1 = _make_sparse_matrix(n_users, n_items, n_data)
         am2 = 2 * _make_sparse_matrix(n_users, n_items, n_data)
