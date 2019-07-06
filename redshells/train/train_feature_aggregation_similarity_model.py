@@ -48,8 +48,7 @@ class TrainFeatureAggregationSimilarityModel(gokart.TaskOnKart):
             max_feature_index=max_feature_index)
 
         model.fit(
-            dataset=dataset.get(size=self.max_data_size),
-            batch_size=self.batch_size,
+            dataset=dataset.get(size=self.max_data_size, batch_size=self.batch_size),
             epoch_size=self.epoch_size,
             test_size_rate=self.test_size_rate,
             early_stopping_patience=self.early_stopping_patience)
