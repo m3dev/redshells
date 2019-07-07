@@ -17,9 +17,10 @@ class TestFeatureAggregationSimilarityModel(unittest.TestCase):
             y_item_indices=np.array([3, 2, 1]),
             x_item_features=np.array([[0, 1], [1, 2], [2, 4]]),
             y_item_features=np.array([[5, 0], [0, 4], [3, 2]]),
-            scores=np.array([0.1, 0.2, 0.4]))
+            scores=np.array([0.1, 0.2, 0.4]),
+            batch_size=1)
 
-        model.fit(dataset=dataset, batch_size=1, epoch_size=5, early_stopping_patience=2, test_size_rate=0.4)
+        model.fit(dataset=dataset, epoch_size=5, early_stopping_patience=2, test_size_rate=0.4)
 
         similarities = model.calculate_similarity(
             x_item_indices=dataset.x_item_indices,

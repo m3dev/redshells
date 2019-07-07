@@ -1,5 +1,4 @@
 from logging import getLogger
-from typing import NamedTuple
 
 import numpy as np
 import tensorflow as tf
@@ -8,14 +7,23 @@ import tensorflow.keras.layers as layers
 logger = getLogger(__name__)
 
 
-class FeatureAggregationSimilarityDataset(NamedTuple):
-    x_item_indices: np.ndarray
-    y_item_indices: np.ndarray
-    x_item_features: np.ndarray
-    y_item_features: np.ndarray
-    scores: np.ndarray
+class FeatureAggregationSimilarityDataset(tf.keras.utils.Sequence):
+    def __init__(
+            self,
+            x_item_indices: np.ndarray,
+            y_item_indices: np.ndarray,
+            x_item_features: np.ndarray,
+            y_item_features: np.ndarray,
+            scores: np.ndarray,
+            batch_size: int = 2**10) -> None:
+        self.x_item_indices = x_item_indices
+        self.y_item_indices = y_item_indices
+        self.x_item_features = x_item_features
+        self.y_item_features = y_item_features
+        self.scores = scores
+        self.batch_size = batch_size
 
-    def get(self, size: int):
+    def get(self, size: int, batch_size: int):
         idx = np.arange(self.scores.shape[0])
         np.random.shuffle(idx)
         idx = idx[:size]
@@ -24,7 +32,42 @@ class FeatureAggregationSimilarityDataset(NamedTuple):
             y_item_indices=self.y_item_indices.copy()[idx],
             x_item_features=self.x_item_features.copy()[idx],
             y_item_features=self.y_item_features.copy()[idx],
-            scores=self.scores.copy()[idx])
+            scores=self.scores.copy()[idx],
+            batch_size=batch_size)
+
+    def train_test_split(self, test_size_rate: float):
+        data_size = self.scores.shape[0]
+        test_size = int(data_size * test_size_rate)
+        train = FeatureAggregationSimilarityDataset(
+            x_item_indices=self.x_item_indices.copy()[test_size:],
+            y_item_indices=self.y_item_indices.copy()[test_size:],
+            x_item_features=self.x_item_features.copy()[test_size:],
+            y_item_features=self.y_item_features.copy()[test_size:],
+            scores=self.scores.copy()[test_size:],
+            batch_size=self.batch_size)
+        test = FeatureAggregationSimilarityDataset(
+            x_item_indices=self.x_item_indices.copy()[:test_size],
+            y_item_indices=self.y_item_indices.copy()[:test_size],
+            x_item_features=self.x_item_features.copy()[:test_size],
+            y_item_features=self.y_item_features.copy()[:test_size],
+            scores=self.scores.copy()[:test_size],
+            batch_size=self.batch_size)
+        return train, test
+
+
+
+    def __getitem__(self, index):
+        start_idx = index * self.batch_size
+        last_idx = start_idx + self.batch_size
+        x_item_indices = self.x_item_indices[start_idx:last_idx]
+        y_item_indices = self.y_item_indices[start_idx:last_idx]
+        x_item_features = self.x_item_features[start_idx:last_idx]
+        y_item_features = self.y_item_features[start_idx:last_idx]
+        scores = self.scores[start_idx:last_idx]
+        return (x_item_indices, y_item_indices, x_item_features, y_item_features), scores
+
+    def __len__(self):
+        return int(np.floor(len(self.x_item_indices) / self.batch_size))
 
 
 class Average(tf.keras.layers.Layer):
@@ -151,17 +194,15 @@ class FeatureAggregationSimilarityModel(object):
 
     def fit(self,
             dataset: FeatureAggregationSimilarityDataset,
-            batch_size: int,
             epoch_size: int,
             test_size_rate: float = 0.05,
             early_stopping_patience: int = 2):
         logger.info('prepare data...')
         callbacks = [tf.keras.callbacks.EarlyStopping(patience=early_stopping_patience)]
         logger.info('start to fit...')
-
-        data, steps_per_epoch, validation_data, validation_steps = self._make_dataset(dataset=dataset, batch_size=batch_size, test_size_rate=test_size_rate)
-        self.model.fit(
-            data, epochs=epoch_size, steps_per_epoch=steps_per_epoch, callbacks=callbacks, validation_data=validation_data, validation_steps=validation_steps)
+        data, validation_data = self._make_dataset(dataset=dataset, test_size_rate=test_size_rate)
+        self.model.fit_generator(
+            data, epochs=epoch_size, callbacks=callbacks, validation_data=validation_data)
 
     def calculate_similarity(self, x_item_indices, y_item_indices, x_item_features, y_item_features, batch_size=2**14):
         return self.model.predict(x=(x_item_indices, y_item_indices, x_item_features, y_item_features), batch_size=batch_size).reshape(-1)
@@ -169,20 +210,6 @@ class FeatureAggregationSimilarityModel(object):
     def calculate_embeddings(self, item_features, batch_size=2**14):
         return self.embeddings.predict(x=(item_features, ), batch_size=batch_size)
 
-    def _make_dataset(self, dataset: FeatureAggregationSimilarityDataset, batch_size: int, test_size_rate: float):
-        data_size = dataset.scores.shape[0]
-        test_data_size = int(data_size * test_size_rate)
-        train_data_size = data_size - test_data_size
-        steps_per_epoch = train_data_size // batch_size + 1
-        validation_steps = test_data_size // batch_size + 1
-
-        data = tf.data.Dataset.from_tensor_slices(((dataset.x_item_indices, dataset.y_item_indices, dataset.x_item_features, dataset.y_item_features),
-                                                   dataset.scores))
-        validation_data = data.take(test_data_size)
-        data = data.skip(test_data_size)
-        data = data.batch(batch_size)
-        data = data.shuffle(steps_per_epoch // 3 + 1, reshuffle_each_iteration=True).repeat()
-        validation_data = validation_data.batch(batch_size)
-        validation_data = validation_data.repeat()
-
-        return data, steps_per_epoch, validation_data, validation_steps
+    def _make_dataset(self, dataset: FeatureAggregationSimilarityDataset, test_size_rate: float):
+        data, validation_data = dataset.train_test_split(test_size_rate=test_size_rate)
+        return data, validation_data
