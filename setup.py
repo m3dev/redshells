@@ -1,14 +1,10 @@
 from setuptools import setup, find_packages
+from codecs import open
+from os import path
 
-readme_note = """\
-.. note::
-
-   For the latest source, discussion, etc, please visit the
-   `GitHub repository <https://github.com/m3dev/redshells>`_\n\n
-"""
-
-with open('README.md') as f:
-    long_description = readme_note + f.read()
+here = path.abspath(path.dirname(__file__))
+with open(path.join(here, 'README.md'), encoding='utf-8') as f:
+    long_description = f.read()
 
 install_requires = [
     'luigi',
@@ -30,6 +26,7 @@ setup(
     setup_requires=['setuptools_scm'],
     description='Tasks which are defined using gokart.TaskOnKart. The tasks can be used with data pipeline library "luigi".',
     long_description=long_description,
+    long_description_content_type="text/markdown",
     author='M3, inc.',
     url='https://github.com/m3dev/redshells',
     license='MIT License',
