@@ -326,11 +326,11 @@ class GraphConvolutionalMatrixCompletion(object):
 
     @classmethod
     def _get_user_feature(cls,  **kwargs) -> np.ndarray:
-        return cls._get_feature(**kwargs, feature="user")
+        return cls._get_feature(**kwargs, feature='user')
 
     @classmethod
     def _get_item_feature(cls, **kwargs) -> np.ndarray:
-        return cls._get_feature(**kwargs, feature="item")
+        return cls._get_feature(**kwargs, feature='item')
 
     @classmethod
     def _get_feature(cls, user_ids: List, item_ids: List, with_user_embedding,
