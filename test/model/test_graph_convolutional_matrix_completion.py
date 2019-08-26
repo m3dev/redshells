@@ -116,7 +116,7 @@ class GraphConvolutionalMatrixCompletionTest(unittest.TestCase):
         self.assertEqual(len(user_features[0]), n_users)
         self.assertEqual(user_features[1].shape, (n_users, n_user_embed_dimension))
 
-    def test_get_item_embedding_with_new_items(self):
+    def test_get_item_feature_with_new_items(self):
         n_users = 101
         n_items = 233
         n_data = 3007
@@ -151,11 +151,11 @@ class GraphConvolutionalMatrixCompletionTest(unittest.TestCase):
 
         target_item_ids = item_ids + [12, 13, 17, 55]  # item_ids to get embeddings
 
-        item_embedding = model.get_item_embedding_with_new_items(item_ids=target_item_ids, additional_dataset=additional_dataset)
-        self.assertEqual(len(item_embedding), 2)
-        self.assertEqual(list(item_embedding[0]), target_item_ids)
-        self.assertEqual(item_embedding[1].shape, (len(target_item_ids), encoder_size))
-        output_embedding = {k: v for k, v in zip(*item_embedding)}
+        item_feature = model.get_item_feature_with_new_items(item_ids=target_item_ids, additional_dataset=additional_dataset)
+        self.assertEqual(len(item_feature), 2)
+        self.assertEqual(list(item_feature[0]), target_item_ids)
+        self.assertEqual(item_feature[1].shape, (len(target_item_ids), encoder_size))
+        output_embedding = {k: v for k, v in zip(*item_feature)}
         np.testing.assert_almost_equal(output_embedding[240], output_embedding[243])
 
 
