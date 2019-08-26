@@ -338,11 +338,9 @@ class GraphConvolutionalMatrixCompletion(object):
         input_data = dict(user=user_indices, item=item_indices, user_feature_indices=user_feature_indices,
                           item_feature_indices=item_feature_indices)
         feed_dict = cls._feed_dict(input_data, graph, dataset, rating_adjacency_matrix, is_train=False)
+        encoder_map = dict(user=graph.user_encoder, item=graph.item_encoder)
         with session.as_default():
-            if feature == "user":
-                feature = session.run(graph.user_encoder, feed_dict=feed_dict)
-            elif feature == "item":
-                feature = session.run(graph.item_encoder, feed_dict=feed_dict)
+            feature = session.run(encoder_map[feature], feed_dict=feed_dict)
         return feature
 
     @staticmethod
