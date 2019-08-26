@@ -296,13 +296,11 @@ class GraphConvolutionalMatrixCompletion(object):
 
     def get_user_feature(self, user_ids: List, item_ids: List, additional_dataset: GcmcDataset, with_user_embedding: bool = True) -> np.ndarray:
         dataset = self.graph_dataset.add_dataset(additional_dataset, add_item=True)
-        return self._get_user_feature(
-            user_ids=user_ids, item_ids=item_ids, with_user_embedding=with_user_embedding, graph=self.graph, dataset=dataset, session=self.session)
+        return self._get_feature(user_ids=user_ids, item_ids=item_ids, with_user_embedding=with_user_embedding, graph=self.graph, dataset=dataset, session=self.session, feature='user')
 
     def get_item_feature(self, user_ids: List, item_ids: List, additional_dataset: GcmcDataset, with_user_embedding: bool = True) -> np.ndarray:
         dataset = self.graph_dataset.add_dataset(additional_dataset, add_item=True)
-        return self._get_item_feature(
-            user_ids=user_ids, item_ids=item_ids, with_user_embedding=with_user_embedding, graph=self.graph, dataset=dataset, session=self.session)
+        return self._get_feature(user_ids=user_ids, item_ids=item_ids, with_user_embedding=with_user_embedding, graph=self.graph, dataset=dataset, session=self.session, feature='item')
 
     @classmethod
     def _predict(cls, user_ids: List, item_ids: List, with_user_embedding, graph: GraphConvolutionalMatrixCompletionGraph, dataset: GcmcGraphDataset,
@@ -323,14 +321,6 @@ class GraphConvolutionalMatrixCompletion(object):
         predictions = predictions.flatten()
         predictions = np.clip(predictions, dataset.rating()[0], dataset.rating()[-1])
         return predictions
-
-    @classmethod
-    def _get_user_feature(cls,  **kwargs) -> np.ndarray:
-        return cls._get_feature(**kwargs, feature='user')
-
-    @classmethod
-    def _get_item_feature(cls, **kwargs) -> np.ndarray:
-        return cls._get_feature(**kwargs, feature='item')
 
     @classmethod
     def _get_feature(cls, user_ids: List, item_ids: List, with_user_embedding,
