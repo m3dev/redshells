@@ -116,6 +116,48 @@ class GraphConvolutionalMatrixCompletionTest(unittest.TestCase):
         self.assertEqual(len(user_features[0]), n_users)
         self.assertEqual(user_features[1].shape, (n_users, n_user_embed_dimension))
 
+    def test_get_item_embedding_with_new_items(self):
+        n_users = 101
+        n_items = 233
+        n_data = 3007
+        am1 = _make_sparse_matrix(n_users, n_items, n_data)
+        am2 = 2 * _make_sparse_matrix(n_users, n_items, n_data)
+        adjacency_matrix = am1 + am2
+        user_ids = adjacency_matrix.tocoo().row
+        item_ids = adjacency_matrix.tocoo().col
+        ratings = adjacency_matrix.tocoo().data
+        item_features = [{i: np.array([i]) for i in range(n_items)}]
+        dataset = GcmcDataset(user_ids, item_ids, ratings, item_features=item_features)
+        graph_dataset = GcmcGraphDataset(dataset, test_size=0.1)
+        encoder_hidden_size = 100
+        encoder_size = 100
+        scope_name = 'GraphConvolutionalMatrixCompletionGraph'
+        model = GraphConvolutionalMatrixCompletion(
+            graph_dataset=graph_dataset,
+            encoder_hidden_size=encoder_hidden_size,
+            encoder_size=encoder_size,
+            scope_name=scope_name,
+            batch_size=1024,
+            epoch_size=10,
+            learning_rate=0.01,
+            dropout_rate=0.7,
+            normalization_type='symmetric')
+        model.fit()
+
+        user_ids = [90, 62, 3, 3]
+        item_ids = [11, 236, 240, 243]
+        additional_item_features = {item_id: np.array([999]) for item_id in item_ids}
+        additional_dataset = GcmcDataset(np.array(user_ids), np.array(item_ids), np.array([1, 2, 1, 1]), item_features=[additional_item_features])
+
+        target_item_ids = item_ids + [12, 13, 17, 55]  # item_ids to get embeddings
+
+        item_embedding = model.get_item_embedding_with_new_items(item_ids=target_item_ids, additional_dataset=additional_dataset)
+        self.assertEqual(len(item_embedding), 2)
+        self.assertEqual(list(item_embedding[0]), target_item_ids)
+        self.assertEqual(item_embedding[1].shape, (len(target_item_ids), encoder_size))
+        output_embedding = {k: v for k, v in zip(*item_embedding)}
+        np.testing.assert_almost_equal(output_embedding[240], output_embedding[243])
+
 
 if __name__ == '__main__':
     unittest.main()
