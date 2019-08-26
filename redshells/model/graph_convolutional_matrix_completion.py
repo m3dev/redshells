@@ -401,7 +401,7 @@ class GraphConvolutionalMatrixCompletion(object):
     def _eliminate(matrix: sp.csr_matrix, user_indices, item_indices):
         matrix = matrix.copy()
         # `lil_matrix` is too slow
-        matrix[user_indices, item_indices] = 0
+        matrix[list(user_indices), list(item_indices)] = 0
         matrix.eliminate_zeros()
         return matrix
 
