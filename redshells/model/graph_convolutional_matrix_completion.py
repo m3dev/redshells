@@ -296,8 +296,11 @@ class GraphConvolutionalMatrixCompletion(object):
 
     def get_user_feature(self, user_ids: List, item_ids: List, additional_dataset: GcmcDataset, with_user_embedding: bool = True) -> np.ndarray:
         dataset = self.graph_dataset.add_dataset(additional_dataset, add_item=True)
-        return self._get_user_feature(
-            user_ids=user_ids, item_ids=item_ids, with_user_embedding=with_user_embedding, graph=self.graph, dataset=dataset, session=self.session)
+        return self._get_feature(user_ids=user_ids, item_ids=item_ids, with_user_embedding=with_user_embedding, graph=self.graph, dataset=dataset, session=self.session, feature='user')
+
+    def get_item_feature(self, user_ids: List, item_ids: List, additional_dataset: GcmcDataset, with_user_embedding: bool = True) -> np.ndarray:
+        dataset = self.graph_dataset.add_dataset(additional_dataset, add_item=True)
+        return self._get_feature(user_ids=user_ids, item_ids=item_ids, with_user_embedding=with_user_embedding, graph=self.graph, dataset=dataset, session=self.session, feature='item')
 
     @classmethod
     def _predict(cls, user_ids: List, item_ids: List, with_user_embedding, graph: GraphConvolutionalMatrixCompletionGraph, dataset: GcmcGraphDataset,
@@ -320,9 +323,9 @@ class GraphConvolutionalMatrixCompletion(object):
         return predictions
 
     @classmethod
-    def _get_user_feature(cls, user_ids: List, item_ids: List, with_user_embedding,
-                          graph: GraphConvolutionalMatrixCompletionGraph, dataset: GcmcGraphDataset,
-                          session: tf.Session) -> np.ndarray:
+    def _get_feature(cls, user_ids: List, item_ids: List, with_user_embedding,
+                     graph: GraphConvolutionalMatrixCompletionGraph, dataset: GcmcGraphDataset,
+                     session: tf.Session, feature: str) -> np.ndarray:
         if graph is None:
             RuntimeError('Please call fit first.')
 
@@ -335,9 +338,10 @@ class GraphConvolutionalMatrixCompletion(object):
         input_data = dict(user=user_indices, item=item_indices, user_feature_indices=user_feature_indices,
                           item_feature_indices=item_feature_indices)
         feed_dict = cls._feed_dict(input_data, graph, dataset, rating_adjacency_matrix, is_train=False)
+        encoder_map = dict(user=graph.user_encoder, item=graph.item_encoder)
         with session.as_default():
-            user_feature = session.run(graph.user_encoder, feed_dict=feed_dict)
-        return user_feature
+            feature = session.run(encoder_map[feature], feed_dict=feed_dict)
+        return feature
 
     @staticmethod
     def _feed_dict(input_data, graph, graph_dataset, rating_adjacency_matrix, dropout_rate: float = 0.0, learning_rate: float = 0.0, is_train: bool = True):
@@ -382,6 +386,12 @@ class GraphConvolutionalMatrixCompletion(object):
         indices = [i for i in range(len(users)) if i % len(item_ids) == 0]
         return user_ids, user_feature[indices]
 
+    def get_item_feature_with_new_items(self, item_ids: List, additional_dataset: GcmcDataset, with_user_embedding: bool = True) -> pd.DataFrame:
+        user_id = self.graph_dataset.user_ids[0]
+        users, items = zip(*[(user_id, item_id) for item_id in item_ids])
+        item_feature = self.get_item_feature(user_ids=users, item_ids=items, additional_dataset=additional_dataset, with_user_embedding=with_user_embedding)
+        return items, item_feature
+
     def _make_graph(self) -> GraphConvolutionalMatrixCompletionGraph:
         return GraphConvolutionalMatrixCompletionGraph(
             n_rating=self.graph_dataset.n_rating,
@@ -401,7 +411,7 @@ class GraphConvolutionalMatrixCompletion(object):
     def _eliminate(matrix: sp.csr_matrix, user_indices, item_indices):
         matrix = matrix.copy()
         # `lil_matrix` is too slow
-        matrix[user_indices, item_indices] = 0
+        matrix[list(user_indices), list(item_indices)] = 0
         matrix.eliminate_zeros()
         return matrix
 

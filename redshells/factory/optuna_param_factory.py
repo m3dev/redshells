@@ -5,7 +5,7 @@ import optuna
 from redshells.factory.singleton import Singleton
 
 
-def _xgbclassifiler_default(trial: optuna.trial.Trial):
+def _xgbclassifier_default(trial: optuna.trial.Trial):
     param = {
         'silent': 1,
         'objective': 'binary:logistic',
@@ -31,7 +31,7 @@ def _xgbclassifiler_default(trial: optuna.trial.Trial):
 class _OptunaParamFactory(metaclass=Singleton):
     def __init__(self):
         self._rules = dict()
-        self._rules['XGBClassifier_default'] = _xgbclassifiler_default
+        self._rules['XGBClassifier_default'] = _xgbclassifier_default
 
     def get(self, key: str, trial: optuna.trial.Trial):
         if key not in self._rules:
