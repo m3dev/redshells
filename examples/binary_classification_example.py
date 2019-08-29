@@ -50,7 +50,7 @@ class OptimizeModelExample(gokart.TaskOnKart):
 
 if __name__ == '__main__':
     luigi.configuration.add_config_path('./config/example.ini')
-    luigi.run([
+    gokart.run([
         'examples.OptimizeModelExample',
         '--local-scheduler',
     ])
