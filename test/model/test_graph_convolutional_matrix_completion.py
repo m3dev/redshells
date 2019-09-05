@@ -1,10 +1,11 @@
 import unittest
+import itertools
 
 import numpy as np
 import scipy.sparse as sp
 from unittest.mock import patch
 
-from redshells.model import GraphConvolutionalMatrixCompletion
+from redshells.model import GraphConvolutionalMatrixCompletion, GraphNoHiddenConvolutionalMatrixCompletion
 from redshells.model.gcmc_dataset import GcmcDataset, GcmcGraphDataset
 
 
@@ -157,6 +158,88 @@ class GraphConvolutionalMatrixCompletionTest(unittest.TestCase):
         self.assertEqual(item_feature[1].shape, (len(target_item_ids), encoder_size))
         output_embedding = {k: v for k, v in zip(*item_feature)}
         np.testing.assert_almost_equal(output_embedding[240], output_embedding[243])
+
+
+class GraphNoHiddenConvolutionalMatrixCompletionTest(unittest.TestCase):
+    def test_run(self):
+        """This tests that GraphNoHiddenConvolutionalMatrixCompletion runs without error.
+        """
+        n_users = 101
+        n_items = 233
+        n_data = 3007
+        am1 = _make_sparse_matrix(n_users, n_items, n_data)
+        am2 = 2 * _make_sparse_matrix(n_users, n_items, n_data)
+        adjacency_matrix = am1 + am2
+        user_ids = adjacency_matrix.tocoo().row
+        item_ids = adjacency_matrix.tocoo().col
+        ratings = adjacency_matrix.tocoo().data
+        item_features = [{i: np.array([i]) for i in range(n_items)}]
+        user_features = [
+            {i: np.array([i]) for i in range(n_users)},
+            {i: np.array([i*2, i*3]) for i in range(n_users)}
+                        ]
+        dataset = GcmcDataset(user_ids, item_ids, ratings, item_features=item_features, user_features=user_features)
+        graph_dataset = GcmcGraphDataset(dataset, test_size=0.1)
+        encoder_hidden_size = 100
+        encoder_size = 100
+        scope_name = 'GraphNoHiddenConvolutionalMatrixCompletionGraph'
+        model = GraphNoHiddenConvolutionalMatrixCompletion(
+            graph_dataset=graph_dataset,
+            encoder_hidden_size=encoder_hidden_size,
+            encoder_size=encoder_size,
+            scope_name=scope_name,
+            batch_size=1024,
+            epoch_size=10,
+            learning_rate=0.01,
+            dropout_rate=0.7,
+            normalization_type='symmetric')
+        reports = model.fit()
+        test_loss = float(reports[-1].split(',')[-2].split('=')[-1])
+        test_rmse = float(reports[-1].split(',')[-1].split('=')[-1][:-1])
+        self.assertLess(test_loss, 1.0)
+        self.assertLess(test_rmse, 0.7)
+
+    def test_predict_with_new_items(self):
+        adjacency_matrix = np.array([[1, 1, 1, 0, 0, 0],
+                                     [0, 0, 0, 0, 1, 1],
+                                     [0, 0, 0, 0, 0, 1],
+                                     [1, 1, 1, 0, 0, 0],
+                                     [1, 0, 1, 0, 0, 1],
+                                     ])
+        n_users, n_items = adjacency_matrix.shape
+        user_ids, item_ids = zip(*list(itertools.product(range(n_users), range(n_items))))
+        ratings = adjacency_matrix.flatten()
+        item_features = [{i: np.array([i]) for i in range(n_items)}]
+        user_features = [
+            {i: np.array([i % 3]) for i in range(n_users)},
+            {i: np.array([(i % 3)*2, (i % 3)*3]) for i in range(n_users)}
+        ]
+        dataset = GcmcDataset(user_ids, item_ids, ratings, item_features=item_features, user_features=user_features)
+        graph_dataset = GcmcGraphDataset(dataset, test_size=0.1)
+        encoder_hidden_size = 10
+        encoder_size = 10
+        scope_name = 'GraphNoHiddenConvolutionalMatrixCompletion'
+        model = GraphNoHiddenConvolutionalMatrixCompletion(
+            graph_dataset=graph_dataset,
+            encoder_hidden_size=encoder_hidden_size,
+            encoder_size=encoder_size,
+            scope_name=scope_name,
+            batch_size=1024,
+            epoch_size=10,
+            learning_rate=0.01,
+            dropout_rate=0.7,
+            normalization_type='symmetric')
+        model.fit()
+
+        user_ids = [0, 1, 2, 4]
+        item_ids = [6, 6, 6, 6]
+        additional_item_features = {item_id: np.array([5]) for item_id in item_ids}
+        additional_dataset = GcmcDataset(np.array(user_ids), np.array(item_ids), np.array([1, 0, 1, 1]), item_features=[additional_item_features])
+
+        target_user_ids = list(range(n_users))
+        target_item_ids = [6] * n_users
+        results = model.predict_with_new_items(target_user_ids, target_item_ids, additional_dataset=additional_dataset)
+        self.assertTrue(np.abs(results[0] - results[3]) < 0.2)
 
 
 if __name__ == '__main__':

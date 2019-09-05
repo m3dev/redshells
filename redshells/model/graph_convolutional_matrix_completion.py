@@ -1,7 +1,7 @@
 import itertools
 from datetime import datetime
 from logging import getLogger
-from typing import List, Optional
+from typing import List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -27,7 +27,7 @@ def _convert_sparse_matrix_to_sparse_tensor(x):
     return tf.SparseTensorValue(indices, coo.data, coo.shape)
 
 
-class GraphConvolutionalMatrixCompletionGraph(object):
+class GraphConvolutionalMatrixCompletionGraphCore(object):
     def __init__(self,
                  n_rating: int,
                  n_user: int,
@@ -38,9 +38,9 @@ class GraphConvolutionalMatrixCompletionGraph(object):
                  normalization_type: str,
                  user_feature_sizes: List[int],
                  item_feature_sizes: List[int],
-                 scope_name: str = 'GraphConvolutionalMatrixCompletionGraph',
+                 scope_name: str = 'GraphConvolutionalMatrixCompletionGraphCore',
                  weight_sharing: bool = True,
-                 ignore_item_embedding: bool = False) -> None:
+                 ignore_item_embedding: bool = False):
         logger.info(f'n_rating={n_rating}; n_user={n_user}; n_item={n_item}')
 
         with tf.variable_scope(scope_name, reuse=tf.AUTO_REUSE):
@@ -55,7 +55,7 @@ class GraphConvolutionalMatrixCompletionGraph(object):
             self.input_edge_size = [tf.placeholder(dtype=np.int32, name=f'edge_size_{r}') for r in range(n_rating)]
             self.input_rating = tf.placeholder(dtype=np.int32, name='rating')
             # shape=(n_user, n_item)
-            self.input_adjacency_matrix = [tf.sparse.placeholder(dtype=np.float32, name=f'adjacency_matrix_{r}') for r in range(n_rating)]
+            self.input_adjacency_matrix = [tf.sparse.placeholder(dtype=np.float32, name=f'adjacency_matrix_{r}') for r in range(n_rating)] 
             # adjustment
             self.user_adjustment = [tf.reshape(tf.div_no_nan(1., tf.sparse.reduce_sum(m, axis=1)), shape=(-1, 1)) for m in self.input_adjacency_matrix]
             self.item_adjustment = [tf.div_no_nan(1., tf.sparse.reduce_sum(m, axis=0)) for m in self.input_adjacency_matrix]
@@ -67,6 +67,7 @@ class GraphConvolutionalMatrixCompletionGraph(object):
             self.input_item_features = [
                 tf.placeholder(dtype=np.float32, shape=[None, size], name=f'item_features_{i}') for i, size in enumerate(item_feature_sizes)
             ]
+
             # adjusted adjacency matrix
             self._adjust_adjacency_matrix(normalization_type)
 
@@ -76,66 +77,11 @@ class GraphConvolutionalMatrixCompletionGraph(object):
             # (n_item, user_feature_size)
             self.user_cx = self.adjusted_adjacency_matrix_transpose
 
-            # encoder
-            self.common_encoder_layer = self._simple_layer(encoder_size)
-
-            self.item_encoder_hidden = self._encoder(
-                feature_size=n_user,
-                encoder_hidden_size=encoder_hidden_size,
-                n_rating=n_rating,
-                cx=self.user_cx,
-                dropout=self.input_dropout,
-                weight_sharing=weight_sharing,
-                edge_size=self.input_edge_size,
-                prefix='item')
-
-            self.user_encoder_hidden = self._encoder(
-                feature_size=n_item,
-                encoder_hidden_size=encoder_hidden_size,
-                n_rating=n_rating,
-                cx=self.item_cx,
-                dropout=self.input_dropout,
-                weight_sharing=weight_sharing,
-                edge_size=self.input_edge_size,
-                prefix='user')
-
-            self.item_encoder = self.common_encoder_layer(self.item_encoder_hidden)
-            self.user_encoder = self.common_encoder_layer(self.user_encoder_hidden)
-            self.user_encoder = tf.gather(self.user_encoder, self.input_user)
-            self.item_encoder = tf.gather(self.item_encoder, self.input_item)
-
-            self._add_user_feature(encoder_hidden_size, encoder_size)
-            self._add_item_feature(encoder_hidden_size, encoder_size, ignore_item_embedding)
-
-            # decoder
-            self.output = self._decoder(encoder_size=encoder_size, n_rating=n_rating, user_encoder=self.user_encoder, item_encoder=self.item_encoder)
-
-            # output
-            self.probability = tf.nn.softmax(self.output)
-            self.expectation = tf.matmul(self.probability, tf.reshape(self.rating, shape=(-1, 1)))
-            self.rmse = tf.sqrt(tf.reduce_mean(tf.math.square(self.expectation - tf.reshape(tf.to_float(self.input_rating), shape=(-1, 1)))))
-
-            # loss
-            self.loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=self.output, labels=self.input_label))
-
-            # optimizer
-            optimizer = tf.train.AdamOptimizer(learning_rate=self.input_learning_rate)
-            self.op = optimizer.apply_gradients(optimizer.compute_gradients(self.loss))
-
-    def _add_item_feature(self, encoder_hidden_size, encoder_size, ignore_item_embedding):
-        if len(self.input_item_features) != 0:
-            layer = self._cross_feature_layer(hidden_size=encoder_hidden_size, size=encoder_size, input_data=self.input_item_features)
-            layer = tf.gather(layer, self.input_item_feature_indices)
-            if ignore_item_embedding:
-                self.item_encoder = layer
-            else:
-                self.item_encoder = self.item_encoder + layer
-
-    def _add_user_feature(self, encoder_hidden_size, encoder_size):
-        if len(self.input_user_features) != 0:
-            layer = self._cross_feature_layer(hidden_size=encoder_hidden_size, size=encoder_size, input_data=self.input_user_features)
-            layer = tf.gather(layer, self.input_user_feature_indices)
-            self.user_encoder = self.user_encoder + layer
+            # initial weights
+            self.gcmc_user_feature_layers_init = ["glorot_normal" for _ in range(len(self.input_user_features))]
+            self.gcmc_user_side_info_layer_init = "glorot_normal"
+            self.gcmc_item_feature_layers_init = ["glorot_normal" for _ in range(len(self.input_item_features))]
+            self.gcmc_item_side_info_layer_init = "glorot_normal"
 
     def _adjust_adjacency_matrix(self, normalization_type):
         if normalization_type == 'symmetric':
@@ -152,17 +98,33 @@ class GraphConvolutionalMatrixCompletionGraph(object):
         else:
             raise ValueError(f'normalization_type must be "left", "right" or "symmetric", but {normalization_type} is passed.')
 
-    @staticmethod
-    def _feature_layer(hidden_size: int, input_data):
-        x = tf.keras.layers.Dense(hidden_size, use_bias=False, activation=None, kernel_initializer='glorot_normal')(input_data)
-        return x
+    def _add_user_feature(self, encoder_hidden_size, encoder_size, side_initial="glorot_normal"):
+        if len(self.input_user_features) != 0:
+            self.user_feature_layers = [self._feature_convert_layer(encoder_hidden_size, kernel_initializer=layer_init) for layer_init in self.gcmc_user_feature_layers_init]
+            x = tf.reduce_prod([layer(feature)+1.0 for layer, feature in zip(self.user_feature_layers, self.input_user_features)], axis=0)
+            self.user_side_info_layer = tf.keras.layers.Dense(encoder_size, use_bias=False, activation='relu', kernel_initializer=side_initial)
+            x = tf.gather(self.user_side_info_layer(x), self.input_user_feature_indices)
+            if self.user_encoder is None:
+                self.user_encoder = x
+            else:
+                self.user_encoder += x  # TODO: discussion for simple addition
 
-    @classmethod
-    def _cross_feature_layer(cls, hidden_size: int, size: int, input_data: List[np.ndarray]):
-        layers = [cls._feature_layer(hidden_size, data) + 1.0 for data in input_data]
-        x = tf.reduce_prod(layers, axis=0)
-        y = tf.keras.layers.Dense(size, use_bias=False, activation=None, kernel_initializer='glorot_normal')(x)
-        return y
+    def _add_item_feature(self, encoder_hidden_size, encoder_size, ignore_item_embedding=False, side_initial="glorot_normal"):
+        if len(self.input_item_features) != 0:
+            self.item_feature_layers = [self._feature_convert_layer(encoder_hidden_size, kernel_initializer=layer_init) for layer_init in self.gcmc_item_feature_layers_init]
+            x = tf.reduce_prod([layer(feature)+1.0 for layer, feature in zip(self.item_feature_layers, self.input_item_features)], axis=0)
+            self.item_side_info_layer = tf.keras.layers.Dense(encoder_size, use_bias=True, activation='relu', kernel_initializer=side_initial)
+            x = tf.gather(self.item_side_info_layer(x), self.input_item_feature_indices)
+            if self.item_encoder is None:
+                self.item_encoder = x
+            else:
+                if ignore_item_embedding:
+                    self.item_encoder = x
+                else:
+                    self.item_encoder += x  # TODO: discussion for simple addition
+
+    def _feature_convert_layer(self, hidden_size: int, kernel_initializer='glorot_normal'):
+        return tf.keras.layers.Dense(hidden_size, use_bias=False, activation=None, kernel_initializer=kernel_initializer)
 
     @staticmethod
     def _simple_layer(output_size: int, input_size: Optional[int] = None):
@@ -213,7 +175,129 @@ class GraphConvolutionalMatrixCompletionGraph(object):
         return tf.constant(x) if x is not None else None
 
 
-class GraphConvolutionalMatrixCompletion(object):
+class GraphConvolutionalMatrixCompletionGraph(GraphConvolutionalMatrixCompletionGraphCore):
+    def __init__(self,
+                 n_rating: int,
+                 n_user: int,
+                 n_item: int,
+                 rating: np.ndarray,
+                 encoder_hidden_size: int,
+                 encoder_size: int,
+                 normalization_type: str,
+                 user_feature_sizes: List[int],
+                 item_feature_sizes: List[int],
+                 scope_name: str = 'GraphConvolutionalMatrixCompletionGraph',
+                 weight_sharing: bool = True,
+                 ignore_item_embedding: bool = False) -> None:
+        super().__init__(n_rating, n_user, n_item, rating, encoder_hidden_size, encoder_size, normalization_type,
+                         user_feature_sizes, item_feature_sizes, scope_name, weight_sharing, ignore_item_embedding)
+
+        with tf.variable_scope(scope_name, reuse=tf.AUTO_REUSE):
+            # encoder
+            self.common_encoder_layer = self._simple_layer(encoder_size)
+
+            self.item_encoder_hidden = self._encoder(
+                feature_size=n_user,
+                encoder_hidden_size=encoder_hidden_size,
+                n_rating=n_rating,
+                cx=self.user_cx,
+                dropout=self.input_dropout,
+                weight_sharing=weight_sharing,
+                edge_size=self.input_edge_size,
+                prefix='item')
+
+            self.user_encoder_hidden = self._encoder(
+                feature_size=n_item,
+                encoder_hidden_size=encoder_hidden_size,
+                n_rating=n_rating,
+                cx=self.item_cx,
+                dropout=self.input_dropout,
+                weight_sharing=weight_sharing,
+                edge_size=self.input_edge_size,
+                prefix='user')
+
+            self.item_encoder = self.common_encoder_layer(self.item_encoder_hidden)
+            self.user_encoder = self.common_encoder_layer(self.user_encoder_hidden)
+            self.user_encoder = tf.gather(self.user_encoder, self.input_user)
+            self.item_encoder = tf.gather(self.item_encoder, self.input_item)
+
+            self._add_user_feature(encoder_hidden_size, encoder_size)
+            self._add_item_feature(encoder_hidden_size, encoder_size, ignore_item_embedding)
+
+            # decoder
+            self.output = self._decoder(encoder_size=encoder_size, n_rating=n_rating, user_encoder=self.user_encoder, item_encoder=self.item_encoder)
+
+            # output
+            self.probability = tf.nn.softmax(self.output)
+            self.expectation = tf.matmul(self.probability, tf.reshape(self.rating, shape=(-1, 1)))
+            self.rmse = tf.sqrt(tf.reduce_mean(tf.math.square(self.expectation - tf.reshape(tf.to_float(self.input_rating), shape=(-1, 1)))))
+
+            # loss
+            self.loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=self.output, labels=self.input_label))
+
+            # optimizer
+            optimizer = tf.train.AdamOptimizer(learning_rate=self.input_learning_rate)
+            self.op = optimizer.apply_gradients(optimizer.compute_gradients(self.loss))
+
+
+class GraphNoHiddenConvolutionalMatrixCompletionGraph(GraphConvolutionalMatrixCompletionGraphCore):
+    def __init__(self,
+                 n_rating: int,
+                 n_user: int,
+                 n_item: int,
+                 rating: np.ndarray,
+                 encoder_hidden_size: int,
+                 encoder_size: int,
+                 normalization_type: str,
+                 user_feature_sizes: List[int],
+                 item_feature_sizes: List[int],
+                 scope_name: str = 'GraphNoHiddenConvolutionalMatrixCompletionGraph',
+                 weight_sharing: bool = True,
+                 ignore_item_embedding: bool = False) -> None:
+        super().__init__(n_rating, n_user, n_item, rating, encoder_hidden_size, encoder_size, normalization_type,
+                         user_feature_sizes, item_feature_sizes, scope_name, weight_sharing, ignore_item_embedding)
+
+        with tf.variable_scope(scope_name, reuse=tf.AUTO_REUSE):
+            # encoder
+            self.common_encoder_layer = self._simple_layer(encoder_size)
+
+            self.user_encoder_hidden = self._encoder(
+                feature_size=n_item,
+                encoder_hidden_size=encoder_hidden_size,
+                n_rating=n_rating,
+                cx=self.item_cx,
+                dropout=self.input_dropout,
+                weight_sharing=weight_sharing,
+                edge_size=self.input_edge_size,
+                prefix='user')
+
+            self.user_encoder = self.common_encoder_layer(self.user_encoder_hidden)
+            self.user_encoder = tf.gather(self.user_encoder, self.input_user)
+            self.item_encoder = None
+
+            self._add_user_feature(encoder_hidden_size, encoder_size)
+            self._add_item_feature(encoder_hidden_size, encoder_size, ignore_item_embedding)
+
+            # decoder
+            self.output = self._decoder(encoder_size=encoder_size, n_rating=n_rating, user_encoder=self.user_encoder, item_encoder=self.item_encoder)
+
+            # output
+            self.probability = tf.nn.softmax(self.output)
+            self.expectation = tf.matmul(self.probability, tf.reshape(self.rating, shape=(-1, 1)))
+            self.rmse = tf.sqrt(tf.reduce_mean(tf.math.square(self.expectation - tf.reshape(tf.to_float(self.input_rating), shape=(-1, 1)))))
+
+            # loss
+            self.loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=self.output, labels=self.input_label))
+
+            # optimizer
+            optimizer = tf.train.AdamOptimizer(learning_rate=self.input_learning_rate)
+            self.op = optimizer.apply_gradients(optimizer.compute_gradients(self.loss))
+
+
+Graphs = Union[GraphConvolutionalMatrixCompletionGraph, GraphNoHiddenConvolutionalMatrixCompletionGraph]
+
+
+class GraphConvolutionalMatrixCompletionCore(object):
     def __init__(self,
                  graph_dataset: GcmcGraphDataset,
                  encoder_hidden_size: int,
@@ -226,7 +310,7 @@ class GraphConvolutionalMatrixCompletion(object):
                  normalization_type: str,
                  weight_sharing: bool = True,
                  ignore_item_embedding: bool = False,
-                 save_directory_path: str = None) -> None:
+                 save_directory_path: str = None):
         self.session = tf.Session()
         self.encoder_hidden_size = encoder_hidden_size
         self.encoder_size = encoder_size
@@ -303,7 +387,7 @@ class GraphConvolutionalMatrixCompletion(object):
         return self._get_feature(user_ids=user_ids, item_ids=item_ids, with_user_embedding=with_user_embedding, graph=self.graph, dataset=dataset, session=self.session, feature='item')
 
     @classmethod
-    def _predict(cls, user_ids: List, item_ids: List, with_user_embedding, graph: GraphConvolutionalMatrixCompletionGraph, dataset: GcmcGraphDataset,
+    def _predict(cls, user_ids: List, item_ids: List, with_user_embedding, graph: Graphs, dataset: GcmcGraphDataset,
                  session: tf.Session) -> np.ndarray:
         if graph is None:
             RuntimeError('Please call fit first.')
@@ -324,7 +408,7 @@ class GraphConvolutionalMatrixCompletion(object):
 
     @classmethod
     def _get_feature(cls, user_ids: List, item_ids: List, with_user_embedding,
-                     graph: GraphConvolutionalMatrixCompletionGraph, dataset: GcmcGraphDataset,
+                     graph: Graphs, dataset: GcmcGraphDataset,
                      session: tf.Session, feature: str) -> np.ndarray:
         if graph is None:
             RuntimeError('Please call fit first.')
@@ -392,7 +476,43 @@ class GraphConvolutionalMatrixCompletion(object):
         item_feature = self.get_item_feature(user_ids=users, item_ids=items, additional_dataset=additional_dataset, with_user_embedding=with_user_embedding)
         return items, item_feature
 
-    def _make_graph(self) -> GraphConvolutionalMatrixCompletionGraph:
+    def _make_graph(self):
+        raise NotImplementedError
+
+    @staticmethod
+    def _eliminate(matrix: sp.csr_matrix, user_indices, item_indices):
+        matrix = matrix.copy()
+        # `lil_matrix` is too slow
+        matrix[list(user_indices), list(item_indices)] = 0
+        matrix.eliminate_zeros()
+        return matrix
+
+    def save(self, file_path: str) -> None:
+        redshells.model.utils.save_tf_session(self, self.session, file_path)
+
+    @staticmethod
+    def load(file_path: str) -> str:
+        raise NotImplementedError
+
+
+class GraphConvolutionalMatrixCompletion(GraphConvolutionalMatrixCompletionCore):
+    def __init__(self,
+                 graph_dataset: GcmcGraphDataset,
+                 encoder_hidden_size: int,
+                 encoder_size: int,
+                 scope_name: str,
+                 batch_size: int,
+                 epoch_size: int,
+                 dropout_rate: float,
+                 learning_rate: float,
+                 normalization_type: str,
+                 weight_sharing: bool = True,
+                 ignore_item_embedding: bool = False,
+                 save_directory_path: str = None) -> None:
+        super().__init__(graph_dataset, encoder_hidden_size, encoder_size, scope_name, batch_size, epoch_size,
+                         dropout_rate, learning_rate, normalization_type, weight_sharing, ignore_item_embedding, save_directory_path)
+
+    def _make_graph(self):
         return GraphConvolutionalMatrixCompletionGraph(
             n_rating=self.graph_dataset.n_rating,
             n_user=self.graph_dataset.n_user,
@@ -408,21 +528,53 @@ class GraphConvolutionalMatrixCompletion(object):
             ignore_item_embedding=self.ignore_item_embedding)
 
     @staticmethod
-    def _eliminate(matrix: sp.csr_matrix, user_indices, item_indices):
-        matrix = matrix.copy()
-        # `lil_matrix` is too slow
-        matrix[list(user_indices), list(item_indices)] = 0
-        matrix.eliminate_zeros()
-        return matrix
-
-    def save(self, file_path: str) -> None:
-        redshells.model.utils.save_tf_session(self, self.session, file_path)
-
-    @staticmethod
-    def load(file_path: str) -> 'GraphConvolutionalMatrixCompletion':
+    def load(file_path: str) -> str:
         session = tf.Session()
         model = redshells.model.utils.load_tf_session(GraphConvolutionalMatrixCompletion, session, file_path,
                                                       GraphConvolutionalMatrixCompletion._make_graph)  # type: GraphConvolutionalMatrixCompletion
+        return model
+
+
+class GraphNoHiddenConvolutionalMatrixCompletion(GraphConvolutionalMatrixCompletionCore):
+    def __init__(self,
+                 graph_dataset: GcmcGraphDataset,
+                 encoder_hidden_size: int,
+                 encoder_size: int,
+                 scope_name: str,
+                 batch_size: int,
+                 epoch_size: int,
+                 dropout_rate: float,
+                 learning_rate: float,
+                 normalization_type: str,
+                 weight_sharing: bool = True,
+                 ignore_item_embedding: bool = False,
+                 save_directory_path: str = None) -> None:
+
+        super().__init__(graph_dataset, encoder_hidden_size, encoder_size, scope_name, batch_size, epoch_size,
+                         dropout_rate, learning_rate, normalization_type, weight_sharing, ignore_item_embedding, save_directory_path)
+        assert len(self.graph_dataset.user_features) > 0, "user_features not set"
+        assert len(self.graph_dataset.item_features) > 0, "item_features not set"
+
+    def _make_graph(self):
+        return GraphNoHiddenConvolutionalMatrixCompletionGraph(
+            n_rating=self.graph_dataset.n_rating,
+            n_user=self.graph_dataset.n_user,
+            n_item=self.graph_dataset.n_item,
+            rating=self.graph_dataset.rating(),
+            normalization_type=self.normalization_type,
+            encoder_hidden_size=self.encoder_hidden_size,
+            encoder_size=self.encoder_size,
+            weight_sharing=self.weight_sharing,
+            scope_name=self.scope_name,
+            user_feature_sizes=[x.shape[1] for x in self.graph_dataset.user_features],
+            item_feature_sizes=[x.shape[1] for x in self.graph_dataset.item_features],
+            ignore_item_embedding=self.ignore_item_embedding)
+
+    @staticmethod
+    def load(file_path: str) -> str:
+        session = tf.Session()
+        model = redshells.model.utils.load_tf_session(GraphNoHiddenConvolutionalMatrixCompletion, session, file_path,
+                                                      GraphNoHiddenConvolutionalMatrixCompletion._make_graph)  # type: GraphNoHiddenConvolutionalMatrixCompletion
         return model
 
 

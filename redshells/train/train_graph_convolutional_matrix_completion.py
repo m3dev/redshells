@@ -6,7 +6,7 @@ import tensorflow as tf
 
 import gokart
 from redshells.model.gcmc_dataset import GcmcDataset, GcmcGraphDataset
-from redshells.model.graph_convolutional_matrix_completion import GraphConvolutionalMatrixCompletion
+from redshells.model.graph_convolutional_matrix_completion import GraphConvolutionalMatrixCompletion, GraphNoHiddenConvolutionalMatrixCompletion
 
 
 class NoneTask(gokart.TaskOnKart):
@@ -38,13 +38,16 @@ class TrainGraphConvolutionalMatrixCompletion(gokart.TaskOnKart):
     min_user_click_count = luigi.IntParameter(default=5)  # type: int
     max_user_click_count = luigi.IntParameter(default=200)  # type: int
 
+    model_class_name = luigi.Parameter(default='gcn')  # type: str
+    model_map = dict(gcn=GraphConvolutionalMatrixCompletion, nhmc=GraphNoHiddenConvolutionalMatrixCompletion)
+
     def requires(self):
         return dict(train_data=self.train_data_task, user_features=self.user_feature_task, item_features=self.item_feature_task)
 
     def output(self):
         return dict(
             model=self.make_model_target(
-                self.output_file_path, save_function=GraphConvolutionalMatrixCompletion.save, load_function=GraphConvolutionalMatrixCompletion.load),
+                self.output_file_path, save_function=self.model_map[self.model_class_name].save, load_function=self.model_map[self.model_class_name].load),
             report=self.make_target('model_report/report.txt'))
 
     def run(self):
@@ -64,7 +67,7 @@ class TrainGraphConvolutionalMatrixCompletion(gokart.TaskOnKart):
         dataset = GcmcDataset(user_ids=user_ids, item_ids=item_ids, ratings=ratings, user_features=user_features, item_features=item_features)
         graph_dataset = GcmcGraphDataset(
             dataset=dataset, test_size=self.test_size, min_user_click_count=self.min_user_click_count, max_user_click_count=self.max_user_click_count)
-        model = GraphConvolutionalMatrixCompletion(graph_dataset=graph_dataset, **self.model_kwargs)
+        model = self.model_map[self.model_class_name](graph_dataset=graph_dataset, **self.model_kwargs)
         self.task_log['report'] = [str(self.model_kwargs)] + model.fit(try_count=self.try_count, decay_speed=self.decay_speed)
         self.dump(self.task_log['report'], 'report')
         self.dump(model, 'model')
