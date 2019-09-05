@@ -42,6 +42,7 @@ class GraphConvolutionalMatrixCompletionGraphCore(object):
                  weight_sharing: bool = True,
                  ignore_item_embedding: bool = False):
         logger.info(f'n_rating={n_rating}; n_user={n_user}; n_item={n_item}')
+        logger.info(f'graph scope_name={scope_name}')
 
         with tf.variable_scope(scope_name, reuse=tf.AUTO_REUSE):
             # placeholder
