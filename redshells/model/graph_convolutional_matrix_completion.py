@@ -123,6 +123,8 @@ class GraphConvolutionalMatrixCompletionGraphCore(object):
                     self.item_encoder = x
                 else:
                     self.item_encoder += x  # TODO: discussion for simple addition
+        else:
+            assert self.item_encoder is not None, "item feature is required."
 
     def _feature_convert_layer(self, hidden_size: int, kernel_initializer='glorot_normal'):
         return tf.keras.layers.Dense(hidden_size, use_bias=False, activation=None, kernel_initializer=kernel_initializer)
