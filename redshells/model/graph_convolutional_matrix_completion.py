@@ -111,7 +111,7 @@ class GraphConvolutionalMatrixCompletionGraphCore(object):
                 self.user_encoder += x  # TODO: discussion for simple addition
 
     def _add_item_feature(self, encoder_hidden_size, encoder_size, ignore_item_embedding=False, side_initial="glorot_normal"):
-        if len(self.input_item_features) != 0:
+        if len(self.input_item_features) != 0 and not ignore_item_embedding:
             self.item_feature_layers = [self._feature_convert_layer(encoder_hidden_size, kernel_initializer=layer_init) for layer_init in self.gcmc_item_feature_layers_init]
             x = tf.reduce_prod([layer(feature)+1.0 for layer, feature in zip(self.item_feature_layers, self.input_item_features)], axis=0)
             self.item_side_info_layer = tf.keras.layers.Dense(encoder_size, use_bias=True, activation='relu', kernel_initializer=side_initial)
@@ -119,10 +119,7 @@ class GraphConvolutionalMatrixCompletionGraphCore(object):
             if self.item_encoder is None:
                 self.item_encoder = x
             else:
-                if ignore_item_embedding:
-                    self.item_encoder = x
-                else:
-                    self.item_encoder += x  # TODO: discussion for simple addition
+                self.item_encoder += x  # TODO: discussion for simple addition
         else:
             assert self.item_encoder is not None, "item feature is required."
 
