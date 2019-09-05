@@ -10,7 +10,7 @@ install_requires = [
     'luigi',
     'gokart>=0.1.20',
     'python-dateutil==2.7.5',
-    'pandas',
+    'pandas<0.25.0',
     'scipy',
     'numpy',
     'gensim',
