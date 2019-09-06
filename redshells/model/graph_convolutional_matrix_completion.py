@@ -216,8 +216,8 @@ class GraphConvolutionalMatrixCompletionGraph(GraphConvolutionalMatrixCompletion
                 edge_size=self.input_edge_size,
                 prefix='user')
 
-            self.item_encoder = self.common_encoder_layer(self.item_encoder_hidden)
             self.user_encoder = self.common_encoder_layer(self.user_encoder_hidden)
+            self.item_encoder = self.common_encoder_layer(self.item_encoder_hidden)
             self.user_encoder = tf.gather(self.user_encoder, self.input_user)
             self.item_encoder = tf.gather(self.item_encoder, self.input_item)
 
@@ -292,6 +292,11 @@ class GraphNoHiddenConvolutionalMatrixCompletionGraph(GraphConvolutionalMatrixCo
             # optimizer
             optimizer = tf.train.AdamOptimizer(learning_rate=self.input_learning_rate)
             self.op = optimizer.apply_gradients(optimizer.compute_gradients(self.loss))
+
+
+class GraphBuilder():
+    def __init__(self):
+        self.graph = None
 
 
 Graphs = Union[GraphConvolutionalMatrixCompletionGraph, GraphNoHiddenConvolutionalMatrixCompletionGraph]
@@ -508,12 +513,14 @@ class GraphConvolutionalMatrixCompletion(GraphConvolutionalMatrixCompletionCore)
                  normalization_type: str,
                  weight_sharing: bool = True,
                  ignore_item_embedding: bool = False,
-                 save_directory_path: str = None) -> None:
+                 save_directory_path: str = None,
+                 graph_type: str = 'gcmc') -> None:
+        self.graph_builder = GraphBuilder(graph_type)
         super().__init__(graph_dataset, encoder_hidden_size, encoder_size, scope_name, batch_size, epoch_size,
                          dropout_rate, learning_rate, normalization_type, weight_sharing, ignore_item_embedding, save_directory_path)
 
     def _make_graph(self):
-        return GraphConvolutionalMatrixCompletionGraph(
+        return self.graph_builder.graph(
             n_rating=self.graph_dataset.n_rating,
             n_user=self.graph_dataset.n_user,
             n_item=self.graph_dataset.n_item,
