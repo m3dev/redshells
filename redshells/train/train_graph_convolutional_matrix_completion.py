@@ -8,7 +8,7 @@ import tensorflow as tf
 
 import gokart
 from redshells.model.gcmc_dataset import GcmcDataset, GcmcGraphDataset
-from redshells.model.graph_convolutional_matrix_completion import GraphConvolutionalMatrixCompletion, GraphNoHiddenConvolutionalMatrixCompletion
+from redshells.model.graph_convolutional_matrix_completion import GraphConvolutionalMatrixCompletion
 
 logger = getLogger(__name__)
 
@@ -43,7 +43,7 @@ class TrainGraphConvolutionalMatrixCompletion(gokart.TaskOnKart):
     max_user_click_count = luigi.IntParameter(default=200)  # type: int
 
     model_class_name = luigi.Parameter(default='gcn')  # type: str
-    model_map = dict(gcn=GraphConvolutionalMatrixCompletion, nhmc=GraphNoHiddenConvolutionalMatrixCompletion)
+    model_map = dict(gcn=GraphConvolutionalMatrixCompletion)
 
     def requires(self):
         return dict(train_data=self.train_data_task, user_features=self.user_feature_task, item_features=self.item_feature_task)

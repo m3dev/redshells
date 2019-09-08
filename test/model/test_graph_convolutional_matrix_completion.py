@@ -5,7 +5,7 @@ import numpy as np
 import scipy.sparse as sp
 from unittest.mock import patch
 
-from redshells.model import GraphConvolutionalMatrixCompletion, GraphNoHiddenConvolutionalMatrixCompletion
+from redshells.model import GraphConvolutionalMatrixCompletion
 from redshells.model.gcmc_dataset import GcmcDataset, GcmcGraphDataset
 
 
@@ -176,8 +176,8 @@ class GraphNoHiddenConvolutionalMatrixCompletionTest(unittest.TestCase):
         item_features = [{i: np.array([i]) for i in range(n_items)}]
         user_features = [
             {i: np.array([i]) for i in range(n_users)},
-            {i: np.array([i*2, i*3]) for i in range(n_users)}
-                        ]
+            {i: np.array([i * 2, i * 3]) for i in range(n_users)}
+        ]
         dataset = GcmcDataset(user_ids, item_ids, ratings, item_features=item_features, user_features=user_features)
         graph_dataset = GcmcGraphDataset(dataset, test_size=0.1)
         encoder_hidden_size = 100
@@ -212,7 +212,7 @@ class GraphNoHiddenConvolutionalMatrixCompletionTest(unittest.TestCase):
         item_features = [{i: np.array([i]) for i in range(n_items)}]
         user_features = [
             {i: np.array([i % 3]) for i in range(n_users)},
-            {i: np.array([(i % 3)*2, (i % 3)*3]) for i in range(n_users)}
+            {i: np.array([(i % 3) * 2, (i % 3) * 3]) for i in range(n_users)}
         ]
         dataset = GcmcDataset(user_ids, item_ids, ratings, item_features=item_features, user_features=user_features)
         graph_dataset = GcmcGraphDataset(dataset, test_size=0.1)
