@@ -160,7 +160,7 @@ class GraphConvolutionalMatrixCompletionTest(unittest.TestCase):
         np.testing.assert_almost_equal(output_embedding[240], output_embedding[243])
 
 
-class GraphNoHiddenConvolutionalMatrixCompletionTest(unittest.TestCase):
+class NoHiddenConvolutionalMatrixCompletionTest(unittest.TestCase):
     def test_run(self):
         """This tests that GraphNoHiddenConvolutionalMatrixCompletion runs without error.
         """
@@ -182,8 +182,8 @@ class GraphNoHiddenConvolutionalMatrixCompletionTest(unittest.TestCase):
         graph_dataset = GcmcGraphDataset(dataset, test_size=0.1)
         encoder_hidden_size = 100
         encoder_size = 100
-        scope_name = 'GraphNoHiddenConvolutionalMatrixCompletionGraph'
-        model = GraphNoHiddenConvolutionalMatrixCompletion(
+        scope_name = 'NoHiddenConvolutionalMatrixCompletion'
+        model = GraphConvolutionalMatrixCompletion(
             graph_dataset=graph_dataset,
             encoder_hidden_size=encoder_hidden_size,
             encoder_size=encoder_size,
@@ -192,7 +192,8 @@ class GraphNoHiddenConvolutionalMatrixCompletionTest(unittest.TestCase):
             epoch_size=10,
             learning_rate=0.01,
             dropout_rate=0.7,
-            normalization_type='symmetric')
+            normalization_type='symmetric',
+            graph_type='nhmc')
         reports = model.fit()
         test_loss = float(reports[-1].split(',')[-2].split('=')[-1])
         test_rmse = float(reports[-1].split(',')[-1].split('=')[-1][:-1])
@@ -218,8 +219,8 @@ class GraphNoHiddenConvolutionalMatrixCompletionTest(unittest.TestCase):
         graph_dataset = GcmcGraphDataset(dataset, test_size=0.1)
         encoder_hidden_size = 10
         encoder_size = 10
-        scope_name = 'GraphNoHiddenConvolutionalMatrixCompletion'
-        model = GraphNoHiddenConvolutionalMatrixCompletion(
+        scope_name = 'NoHiddenConvolutionalMatrixCompletion'
+        model = GraphConvolutionalMatrixCompletion(
             graph_dataset=graph_dataset,
             encoder_hidden_size=encoder_hidden_size,
             encoder_size=encoder_size,
@@ -228,7 +229,8 @@ class GraphNoHiddenConvolutionalMatrixCompletionTest(unittest.TestCase):
             epoch_size=10,
             learning_rate=0.01,
             dropout_rate=0.7,
-            normalization_type='symmetric')
+            normalization_type='symmetric',
+            graph_type='nhmc')
         model.fit()
 
         user_ids = [0, 1, 2, 4]
