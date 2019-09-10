@@ -28,7 +28,7 @@ def _convert_sparse_matrix_to_sparse_tensor(x):
     return tf.SparseTensorValue(indices, coo.data, coo.shape)
 
 
-class GraphABC(ABC):
+class AbstractGraph(ABC):
     @abstractmethod
     def set_encoder(self):
         pass
@@ -210,7 +210,7 @@ class GraphMethods():
             return encoder
 
 
-class GCMCGraph(GraphABC):
+class GCMCGraph(AbstractGraph):
     """Graph class of `Graph Convolutional Matrix Completion`.
     """
 
@@ -252,7 +252,7 @@ class GCMCGraph(GraphABC):
             self.op = optimizer.apply_gradients(optimizer.compute_gradients(self.loss))
 
 
-class NoItemHiddenGCMCGraph(GraphABC):
+class NoItemHiddenGCMCGraph(AbstractGraph):
     """Graph class of `No Item Hidden Layer Graph Convolutional Matrix Completion`,
     a variant of GCMC except using no item hidden layer for computing item embeddings.
     """
@@ -395,7 +395,8 @@ class GraphConvolutionalMatrixCompletion(object):
         dataset = self.graph_dataset.add_dataset(additional_dataset, add_item=True)
         return self._get_feature(user_ids=user_ids, item_ids=item_ids, with_user_embedding=with_user_embedding, graph=self.graph, dataset=dataset, session=self.session, feature='item')
 
-    def _predict(self, user_ids: List, item_ids: List, with_user_embedding, graph: GraphABC, dataset: GcmcGraphDataset,
+    @classmethod
+    def _predict(cls, user_ids: List, item_ids: List, with_user_embedding, graph: AbstractGraph, dataset: GcmcGraphDataset,
                  session: tf.Session) -> np.ndarray:
         if graph is None:
             RuntimeError('Please call fit first.')
@@ -407,7 +408,7 @@ class GraphConvolutionalMatrixCompletion(object):
 
         user_feature_indices, item_feature_indices = dataset.to_feature_indices(user_ids, item_ids)
         input_data = dict(user=user_indices, item=item_indices, user_feature_indices=user_feature_indices, item_feature_indices=item_feature_indices)
-        feed_dict = self._feed_dict(input_data, graph, dataset, rating_adjacency_matrix, is_train=False)
+        feed_dict = cls._feed_dict(input_data, graph, dataset, rating_adjacency_matrix, is_train=False)
         with session.as_default():
             predictions = session.run(graph.expectation, feed_dict=feed_dict)
         predictions = predictions.flatten()
@@ -415,7 +416,7 @@ class GraphConvolutionalMatrixCompletion(object):
         return predictions
 
     def _get_feature(self, user_ids: List, item_ids: List, with_user_embedding,
-                     graph: GraphABC, dataset: GcmcGraphDataset,
+                     graph: AbstractGraph, dataset: GcmcGraphDataset,
                      session: tf.Session, feature: str) -> np.ndarray:
         if graph is None:
             RuntimeError('Please call fit first.')
@@ -434,7 +435,8 @@ class GraphConvolutionalMatrixCompletion(object):
             feature = session.run(encoder_map[feature], feed_dict=feed_dict)
         return feature
 
-    def _feed_dict(self, input_data, graph, graph_dataset, rating_adjacency_matrix, dropout_rate: float = 0.0, learning_rate: float = 0.0, is_train: bool = True):
+    @staticmethod
+    def _feed_dict(input_data, graph, graph_dataset, rating_adjacency_matrix, dropout_rate: float = 0.0, learning_rate: float = 0.0, is_train: bool = True):
         feed_dict = {
             graph.input_learning_rate: learning_rate,
             graph.input_dropout: dropout_rate,
