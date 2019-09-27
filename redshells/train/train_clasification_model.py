@@ -51,6 +51,20 @@ class TrainClassificationModel(_ClassificationModelTask):
         redshells.train.utils.fit_model(self)
 
 
+class OptimizeClassificationModel(_ClassificationModelTask):
+    """
+    Optimize classification model. Please see `_ClassificationModelTask` for more detail and required parameters.
+    """
+    task_namespace = 'redshells'
+    test_size = luigi.FloatParameter()  # type: float
+    optuna_param_name = luigi.Parameter(description='The key of "redshells.factory.get_optuna_param".')
+    output_file_path = luigi.Parameter(default='model/classification_model.pkl')  # type: str
+
+    def run(self):
+        redshells.train.utils.optimize_model(
+            self, param_name=self.optuna_param_name, test_size=self.test_size)
+
+
 class ValidateClassificationModel(_ClassificationModelTask):
     """
     Train classification model. Please see `_ClassificationModelTask` for more detail and required parameters.
