@@ -48,11 +48,25 @@ def _lgbmclassifier_default(trial: optuna.trial.Trial):
     return params
 
 
+def _catboostclassifier_default(trial: optuna.trial.Trial):
+    params = {
+        'iterations': trial.suggest_int('iterations', 50, 300),
+        'depth': trial.suggest_int('depth', 4, 10),
+        'learning_rate': trial.suggest_loguniform('learning_rate', 0.01, 0.3),
+        'random_strength': trial.suggest_int('random_strength', 0, 100),
+        'bagging_temperature': trial.suggest_loguniform('bagging_temperature', 0.01, 100.00),
+        'od_type': trial.suggest_categorical('od_type', ['IncToDec', 'Iter']),
+        'od_wait': trial.suggest_int('od_wait', 10, 50)
+    }
+
+    return params
+
 class _OptunaParamFactory(metaclass=Singleton):
     def __init__(self):
         self._rules = dict()
         self._rules['XGBClassifier_default'] = _xgbclassifier_default
         self._rules['LGBMClassifier_default'] = _lgbmclassifier_default
+        self._rules['CatBoostClassifier_default'] = _catboostclassifier_default
 
     def get(self, key: str, trial: optuna.trial.Trial):
         if key not in self._rules:

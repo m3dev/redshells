@@ -24,6 +24,12 @@ class _PredictionModelFactory(metaclass=Singleton):
         except ImportError:
             pass
 
+        try:
+            import catboost
+            self._models['CatBoostClassifier'] = catboost.CatBoostClassifier
+        except ImportError:
+            pass
+
     def get(self, key: str):
         if key in self._models:
             return self._models[key]
