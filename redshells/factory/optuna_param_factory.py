@@ -28,10 +28,31 @@ def _xgbclassifier_default(trial: optuna.trial.Trial):
     return param
 
 
+def _lgbmclassifier_default(trial: optuna.trial.Trial):
+    # TODO: using LightGBMTuner
+    params = {
+        'boosting_type': trial.suggest_categorical('boosting', ['gbdt', 'dart', 'goss']),
+        'objective': 'binary',
+        'metric': ['binary', 'binary_error', 'auc'],
+        'num_leaves': trial.suggest_int("num_leaves", 10, 500),
+        'learning_rate': trial.suggest_loguniform("learning_rate", 1e-5, 1),
+        'feature_fraction': trial.suggest_uniform("feature_fraction", 0.0, 1.0),
+    }
+    if params['boosting_type'] == 'dart':
+        params['drop_rate'] = trial.suggest_loguniform('drop_rate', 1e-8, 1.0)
+        params['skip_drop'] = trial.suggest_loguniform('skip_drop', 1e-8, 1.0)
+    if params['boosting_type'] == 'goss':
+        params['top_rate'] = trial.suggest_uniform('top_rate', 0.0, 1.0)
+        params['other_rate'] = trial.suggest_uniform('other_rate', 0.0, 1.0 - params['top_rate'])
+
+    return params
+
+
 class _OptunaParamFactory(metaclass=Singleton):
     def __init__(self):
         self._rules = dict()
         self._rules['XGBClassifier_default'] = _xgbclassifier_default
+        self._rules['LGBMClassifier_default'] = _lgbmclassifier_default
 
     def get(self, key: str, trial: optuna.trial.Trial):
         if key not in self._rules:

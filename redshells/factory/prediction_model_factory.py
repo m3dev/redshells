@@ -18,6 +18,12 @@ class _PredictionModelFactory(metaclass=Singleton):
         except ImportError:
             pass
 
+        try:
+            import lightgbm
+            self._models['LGBMClassifier'] = lightgbm.LGBMClassifier
+        except ImportError:
+            pass
+
     def get(self, key: str):
         if key in self._models:
             return self._models[key]
