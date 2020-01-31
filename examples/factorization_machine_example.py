@@ -146,7 +146,7 @@ class FactorizationMachineExample(gokart.TaskOnKart):
 if __name__ == '__main__':
     # Please download criteo data from https://www.kaggle.com/c/criteo-display-ad-challenge and put train.txt on ./resouces/criteo/train.txt.
     luigi.configuration.add_config_path('./config/example.ini')
-    luigi.run([
+    gokart.run([
         'examples.FactorizationMachineExample',
         '--text-data-file-path',
         './resources/criteo/train.txt',
