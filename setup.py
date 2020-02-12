@@ -18,6 +18,7 @@ install_requires = [
     'tensorflow>=1.13.1, <2.0',
     'tqdm',
     'optuna==0.6.0',
+    'docutils==0.15' # to avoid dependency conflict
 ]
 
 setup(

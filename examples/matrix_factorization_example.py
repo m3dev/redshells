@@ -126,7 +126,7 @@ class MatrixFactorizationExample(gokart.TaskOnKart):
 if __name__ == '__main__':
     # Please download Netflix data from https://www.kaggle.com/netflix-inc/netflix-prize-data, and copy combined_data_*.txt to resources/netflix/.
     luigi.configuration.add_config_path('./config/example.ini')
-    luigi.run([
+    gokart.run([
         'examples.MatrixFactorizationExample',
         '--data-size-rate',
         '1.0',
