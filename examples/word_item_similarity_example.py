@@ -90,7 +90,7 @@ class WordItemSimilarityExample(gokart.TaskOnKart):
 
 if __name__ == '__main__':
     luigi.configuration.add_config_path('./config/example.ini')
-    luigi.run([
+    gokart.run([
         'examples.WordItemSimilarityExample',
         '--local-scheduler',
     ])
