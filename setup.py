@@ -9,7 +9,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 install_requires = [
     'luigi',
     'gokart>=0.1.20',
-    'python-dateutil==2.7.5',
+    'python-dateutil>=2.7.5',
     'pandas',
     'scipy',
     'numpy',
@@ -17,8 +17,8 @@ install_requires = [
     'scikit-learn',
     'tensorflow>=1.13.1, <2.0',
     'tqdm',
-    'optuna==0.6.0',
     'docutils==0.15' # to avoid dependency conflict
+    'optuna>=0.6.0',
 ]
 
 setup(
