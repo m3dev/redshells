@@ -17,7 +17,7 @@ install_requires = [
     'scikit-learn',
     'tensorflow>=1.13.1, <2.0',
     'tqdm',
-    'docutils==0.15' # to avoid dependency conflict
+    'docutils==0.15', # to avoid dependency conflict
     'optuna>=0.6.0',
 ]
 
