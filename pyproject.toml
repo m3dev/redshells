@@ -1,0 +1,39 @@
+[tool.poetry]
+name = "redshells"
+version = "0.0.0"  # using poetry-dynamic-versioning
+description='Tasks which are defined using gokart.TaskOnKart. The tasks can be used with data pipeline library "luigi".'
+authors = ["M3, inc."]
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/m3dev/redshells"
+repository = "https://github.com/m3dev/redshells"
+documentation = ""
+
+[tool.poetry-dynamic-versioning]
+enable = true
+style = "pep440"
+pattern = "^(?P<base>\\d+\\.\\d+\\.\\d+)"
+
+[tool.poetry.dependencies]
+python = "^3.6"
+luigi = "*"
+gokart = "^0.1.20"
+pandas = "<1.2"
+numpy = "*"
+scipy = "*"
+gensim = "3.8.3"
+scikit-learn = "*"
+tqdm = "*"
+docutils = "==0.15"
+optuna = "^0.6.0"
+tensorflow = ">=1.13.1,<2.0"
+
+[tool.poetry.dev-dependencies]
+tox = "*"
+moto = "*"
+testfixtures = "*"
+coverage = "*"
+
+[build-system]
+requires = ["poetry"]
+build-backend = "poetry.masonry.api"
