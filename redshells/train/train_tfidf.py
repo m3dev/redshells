@@ -12,8 +12,7 @@ logger = getLogger(__name__)
 
 class TrainTfidf(gokart.TaskOnKart):
     output_file_path = luigi.Parameter(default='model/tfidf.pkl')  # type: str
-    tokenized_text_data_task = gokart.TaskInstanceParameter(
-        description='A task outputs tokenized texts with type "List[List[str]]".')
+    tokenized_text_data_task = gokart.TaskInstanceParameter(description='A task outputs tokenized texts with type "List[List[str]]".')
 
     def requires(self):
         return self.tokenized_text_data_task

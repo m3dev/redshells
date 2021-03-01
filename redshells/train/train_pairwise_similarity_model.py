@@ -17,18 +17,14 @@ class _PairwiseSimilarityModelTask(gokart.TaskOnKart):
     item2embedding_task = gokart.TaskInstanceParameter(
         description='A task outputs a mapping from item to embedding. The output must have type=Dict[Any, np.ndarray].')
     similarity_data_task = gokart.TaskInstanceParameter(
-        description=
-        'A task outputs a pd.DataFrame with columns={`item0_column_name`, `item`_column_name`, `similarity_column_name`}. '
+        description='A task outputs a pd.DataFrame with columns={`item0_column_name`, `item`_column_name`, `similarity_column_name`}. '
         '`similarity_column_name` must be binary data.')
     item0_column_name = luigi.Parameter()  # type: str
     item1_column_name = luigi.Parameter()  # type: str
     similarity_column_name = luigi.Parameter()  # type: str
-    model_name = luigi.Parameter(
-        default='XGBClassifier',
-        description='A model name which has "fit" interface, and must be registered by "register_prediction_model".'
-    )  # type: str
-    model_kwargs = luigi.DictParameter(
-        default=dict(), description='Arguments of the model which are created with model_name.')  # type: Dict[str, Any]
+    model_name = luigi.Parameter(default='XGBClassifier',
+                                 description='A model name which has "fit" interface, and must be registered by "register_prediction_model".')  # type: str
+    model_kwargs = luigi.DictParameter(default=dict(), description='Arguments of the model which are created with model_name.')  # type: Dict[str, Any]
     output_file_path = luigi.Parameter(default='model/pairwise_similarity_model.pkl')  # type: str
 
     def requires(self):
@@ -43,9 +39,8 @@ class _PairwiseSimilarityModelTask(gokart.TaskOnKart):
     def create_train_data(self):
         logger.info('loading input data...')
         item2embedding = self.load('item2embedding')  # type: Dict[Any, np.ndarray]
-        similarity_data = self.load_data_frame(
-            'similarity_data',
-            required_columns={self.item0_column_name, self.item1_column_name, self.similarity_column_name})
+        similarity_data = self.load_data_frame('similarity_data',
+                                               required_columns={self.item0_column_name, self.item1_column_name, self.similarity_column_name})
         logger.info(f'similarity_data size={similarity_data.shape}')
         similarity_data = sklearn.utils.shuffle(similarity_data)
         logger.info('making features...')
@@ -54,8 +49,8 @@ class _PairwiseSimilarityModelTask(gokart.TaskOnKart):
         similarity_data = similarity_data[similarity_data[self.item0_column_name].isin(item2embedding)]
         similarity_data = similarity_data[similarity_data[self.item1_column_name].isin(item2embedding)]
         x = np.array([
-            np.multiply(item2embedding[i1], item2embedding[i2]) for i1, i2 in zip(
-                similarity_data[self.item0_column_name].tolist(), similarity_data[self.item1_column_name].tolist())
+            np.multiply(item2embedding[i1], item2embedding[i2])
+            for i1, i2 in zip(similarity_data[self.item0_column_name].tolist(), similarity_data[self.item1_column_name].tolist())
         ])
 
         y = similarity_data[self.similarity_column_name].tolist()

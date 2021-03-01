@@ -20,16 +20,14 @@ class TrainPairwiseSimilarityModelTest(unittest.TestCase):
 
     def test_run(self):
         self.input_data['item2embedding'] = dict(i0=[1, 2], i1=[3, 4])
-        self.input_data['similarity_data'] = pd.DataFrame(
-            dict(item1=['i0', 'i0', 'i1'], item2=['i0', 'i1', 'i1'], similarity=[1, 0, 1]))
+        self.input_data['similarity_data'] = pd.DataFrame(dict(item1=['i0', 'i0', 'i1'], item2=['i0', 'i1', 'i1'], similarity=[1, 0, 1]))
 
-        task = TrainPairwiseSimilarityModel(
-            item2embedding_task=_DummyTask(),
-            similarity_data_task=_DummyTask(),
-            model_name='RandomForestClassifier',
-            item0_column_name='item1',
-            item1_column_name='item2',
-            similarity_column_name='similarity')
+        task = TrainPairwiseSimilarityModel(item2embedding_task=_DummyTask(),
+                                            similarity_data_task=_DummyTask(),
+                                            model_name='RandomForestClassifier',
+                                            item0_column_name='item1',
+                                            item1_column_name='item2',
+                                            similarity_column_name='similarity')
         task.load = MagicMock(side_effect=self._load)
         task.dump = MagicMock(side_effect=self._dump)
 

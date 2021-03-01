@@ -10,15 +10,11 @@ import redshells.train.utils
 
 
 class _ClassificationModelTask(gokart.TaskOnKart):
-    train_data_task = gokart.TaskInstanceParameter(
-        description='A task outputs a pd.DataFrame with columns={`target_column_name`}.')
+    train_data_task = gokart.TaskInstanceParameter(description='A task outputs a pd.DataFrame with columns={`target_column_name`}.')
     target_column_name = luigi.Parameter(default='category', description='Category column names.')  # type: str
-    model_name = luigi.Parameter(
-        default='XGBClassifier',
-        description='A model name which has "fit" interface, and must be registered by "register_prediction_model".'
-    )  # type: str
-    model_kwargs = luigi.DictParameter(
-        default=dict(), description='Arguments of the model which are created with model_name.')  # type: Dict[str, Any]
+    model_name = luigi.Parameter(default='XGBClassifier',
+                                 description='A model name which has "fit" interface, and must be registered by "register_prediction_model".')  # type: str
+    model_kwargs = luigi.DictParameter(default=dict(), description='Arguments of the model which are created with model_name.')  # type: Dict[str, Any]
 
     def requires(self):
         return self.train_data_task
@@ -61,8 +57,7 @@ class OptimizeClassificationModel(_ClassificationModelTask):
     output_file_path = luigi.Parameter(default='model/classification_model.pkl')  # type: str
 
     def run(self):
-        redshells.train.utils.optimize_model(
-            self, param_name=self.optuna_param_name, test_size=self.test_size)
+        redshells.train.utils.optimize_model(self, param_name=self.optuna_param_name, test_size=self.test_size)
 
 
 class ValidateClassificationModel(_ClassificationModelTask):

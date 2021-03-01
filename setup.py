@@ -17,20 +17,19 @@ install_requires = [
     'scikit-learn',
     'tensorflow>=1.13.1, <2.0',
     'tqdm',
-    'docutils==0.15', # to avoid dependency conflict
+    'docutils==0.15',  # to avoid dependency conflict
     'optuna>=0.6.0',
 ]
 
-setup(
-    name='redshells',
-    use_scm_version=True,
-    setup_requires=['setuptools_scm'],
-    description='Tasks which are defined using gokart.TaskOnKart. The tasks can be used with data pipeline library "luigi".',
-    long_description=long_description,
-    long_description_content_type="text/markdown",
-    author='M3, inc.',
-    url='https://github.com/m3dev/redshells',
-    license='MIT License',
-    packages=find_packages(),
-    install_requires=install_requires,
-    test_suite='test')
+setup(name='redshells',
+      use_scm_version=True,
+      setup_requires=['setuptools_scm'],
+      description='Tasks which are defined using gokart.TaskOnKart. The tasks can be used with data pipeline library "luigi".',
+      long_description=long_description,
+      long_description_content_type="text/markdown",
+      author='M3, inc.',
+      url='https://github.com/m3dev/redshells',
+      license='MIT License',
+      packages=find_packages(),
+      install_requires=install_requires,
+      test_suite='test')

@@ -31,16 +31,15 @@ class GraphConvolutionalMatrixCompletionTest(unittest.TestCase):
         encoder_hidden_size = 100
         encoder_size = 100
         scope_name = 'GraphConvolutionalMatrixCompletionGraph'
-        model = GraphConvolutionalMatrixCompletion(
-            graph_dataset=graph_dataset,
-            encoder_hidden_size=encoder_hidden_size,
-            encoder_size=encoder_size,
-            scope_name=scope_name,
-            batch_size=1024,
-            epoch_size=10,
-            learning_rate=0.01,
-            dropout_rate=0.7,
-            normalization_type='symmetric')
+        model = GraphConvolutionalMatrixCompletion(graph_dataset=graph_dataset,
+                                                   encoder_hidden_size=encoder_hidden_size,
+                                                   encoder_size=encoder_size,
+                                                   scope_name=scope_name,
+                                                   batch_size=1024,
+                                                   epoch_size=10,
+                                                   learning_rate=0.01,
+                                                   dropout_rate=0.7,
+                                                   normalization_type='symmetric')
         reports = model.fit()
         test_loss = float(reports[-1].split(',')[-2].split('=')[-1])
         test_rmse = float(reports[-1].split(',')[-1].split('=')[-1][:-1])
@@ -63,16 +62,15 @@ class GraphConvolutionalMatrixCompletionTest(unittest.TestCase):
         encoder_hidden_size = 100
         encoder_size = 100
         scope_name = 'GraphConvolutionalMatrixCompletionGraph'
-        model = GraphConvolutionalMatrixCompletion(
-            graph_dataset=graph_dataset,
-            encoder_hidden_size=encoder_hidden_size,
-            encoder_size=encoder_size,
-            scope_name=scope_name,
-            batch_size=1024,
-            epoch_size=10,
-            learning_rate=0.01,
-            dropout_rate=0.7,
-            normalization_type='symmetric')
+        model = GraphConvolutionalMatrixCompletion(graph_dataset=graph_dataset,
+                                                   encoder_hidden_size=encoder_hidden_size,
+                                                   encoder_size=encoder_size,
+                                                   scope_name=scope_name,
+                                                   batch_size=1024,
+                                                   epoch_size=10,
+                                                   learning_rate=0.01,
+                                                   dropout_rate=0.7,
+                                                   normalization_type='symmetric')
         model.fit()
 
         user_ids = [90, 62]
@@ -100,16 +98,15 @@ class GraphConvolutionalMatrixCompletionTest(unittest.TestCase):
         encoder_hidden_size = 100
         encoder_size = 100
         scope_name = 'GraphConvolutionalMatrixCompletionGraph'
-        model = GraphConvolutionalMatrixCompletion(
-            graph_dataset=graph_dataset,
-            encoder_hidden_size=encoder_hidden_size,
-            encoder_size=encoder_size,
-            scope_name=scope_name,
-            batch_size=1024,
-            epoch_size=10,
-            learning_rate=0.01,
-            dropout_rate=0.7,
-            normalization_type='symmetric')
+        model = GraphConvolutionalMatrixCompletion(graph_dataset=graph_dataset,
+                                                   encoder_hidden_size=encoder_hidden_size,
+                                                   encoder_size=encoder_size,
+                                                   scope_name=scope_name,
+                                                   batch_size=1024,
+                                                   epoch_size=10,
+                                                   learning_rate=0.01,
+                                                   dropout_rate=0.7,
+                                                   normalization_type='symmetric')
         n_user_embed_dimension = 50
         dummy_get_user_feature.return_value = np.zeros((len(user_ids) * len(item_ids), n_user_embed_dimension))
         user_features = model.get_user_feature_with_new_items(item_ids, additional_dataset=dataset, with_user_embedding=False)
@@ -132,16 +129,15 @@ class GraphConvolutionalMatrixCompletionTest(unittest.TestCase):
         encoder_hidden_size = 100
         encoder_size = 100
         scope_name = 'GraphConvolutionalMatrixCompletionGraph'
-        model = GraphConvolutionalMatrixCompletion(
-            graph_dataset=graph_dataset,
-            encoder_hidden_size=encoder_hidden_size,
-            encoder_size=encoder_size,
-            scope_name=scope_name,
-            batch_size=1024,
-            epoch_size=10,
-            learning_rate=0.01,
-            dropout_rate=0.7,
-            normalization_type='symmetric')
+        model = GraphConvolutionalMatrixCompletion(graph_dataset=graph_dataset,
+                                                   encoder_hidden_size=encoder_hidden_size,
+                                                   encoder_size=encoder_size,
+                                                   scope_name=scope_name,
+                                                   batch_size=1024,
+                                                   epoch_size=10,
+                                                   learning_rate=0.01,
+                                                   dropout_rate=0.7,
+                                                   normalization_type='symmetric')
         model.fit()
 
         user_ids = [90, 62, 3, 3]

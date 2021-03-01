@@ -12,9 +12,8 @@ logger = getLogger(__name__)
 
 
 class MatrixFactorizationGraph(object):
-    def __init__(self, n_items: int, n_users: int, n_latent_factors: int, n_services: int, reg_item: float,
-                 reg_user: float, scope_name: str, use_l2_upper_regularization: bool, average: float,
-                 standard_deviation: float) -> None:
+    def __init__(self, n_items: int, n_users: int, n_latent_factors: int, n_services: int, reg_item: float, reg_user: float, scope_name: str,
+                 use_l2_upper_regularization: bool, average: float, standard_deviation: float) -> None:
         # placeholder
         self.input_items = tf.placeholder(dtype=np.int32, shape=[None], name='input_items')
         self.input_users = tf.placeholder(dtype=np.int32, shape=[None], name='input_users')
@@ -27,35 +26,31 @@ class MatrixFactorizationGraph(object):
         initializer = tf.random_uniform_initializer(0, scale)
 
         with tf.variable_scope(f'{scope_name}_bias', reuse=tf.AUTO_REUSE):
-            self.item_bias_embedding = tf.keras.layers.Embedding(
-                input_dim=n_items,
-                output_dim=1,
-                embeddings_initializer=tf.constant_initializer(average / 2.0),
-                name='item_bias')
+            self.item_bias_embedding = tf.keras.layers.Embedding(input_dim=n_items,
+                                                                 output_dim=1,
+                                                                 embeddings_initializer=tf.constant_initializer(average / 2.0),
+                                                                 name='item_bias')
             self.item_biases = self.item_bias_embedding(self.input_items)
 
-            self.user_bias_embedding = tf.keras.layers.Embedding(
-                input_dim=n_users * n_services,
-                output_dim=1,
-                embeddings_initializer=tf.constant_initializer(average / 2.0),
-                name='user_bias')
+            self.user_bias_embedding = tf.keras.layers.Embedding(input_dim=n_users * n_services,
+                                                                 output_dim=1,
+                                                                 embeddings_initializer=tf.constant_initializer(average / 2.0),
+                                                                 name='user_bias')
             self.user_biases = self.user_bias_embedding(self.input_users + self.input_services * n_users)
 
         with tf.variable_scope(f'{scope_name}_latent_factor', reuse=tf.AUTO_REUSE):
-            self.item_embedding = tf.keras.layers.Embedding(
-                input_dim=n_items,
-                output_dim=n_latent_factors,
-                embeddings_initializer=initializer,
-                embeddings_regularizer=tf.contrib.layers.l2_regularizer(reg_item),
-                name='item_embedding')
+            self.item_embedding = tf.keras.layers.Embedding(input_dim=n_items,
+                                                            output_dim=n_latent_factors,
+                                                            embeddings_initializer=initializer,
+                                                            embeddings_regularizer=tf.contrib.layers.l2_regularizer(reg_item),
+                                                            name='item_embedding')
             self.item_factors = self.item_embedding(self.input_items)
 
-            self.user_embedding = tf.keras.layers.Embedding(
-                input_dim=n_users,
-                output_dim=n_latent_factors,
-                embeddings_initializer=initializer,
-                embeddings_regularizer=tf.contrib.layers.l2_regularizer(reg_user),
-                name='user_embedding')
+            self.user_embedding = tf.keras.layers.Embedding(input_dim=n_users,
+                                                            output_dim=n_latent_factors,
+                                                            embeddings_initializer=initializer,
+                                                            embeddings_regularizer=tf.contrib.layers.l2_regularizer(reg_user),
+                                                            name='user_embedding')
             self.user_factors = self.user_embedding(self.input_users)
 
         self.bias_values = tf.squeeze(self.item_biases + self.user_biases, 1)
@@ -71,8 +66,7 @@ class MatrixFactorizationGraph(object):
 
         if use_l2_upper_regularization:
             item_norm = tf.norm(self.item_factors, axis=1)
-            self.item_normalization_penalty = tf.reduce_mean(
-                tf.maximum(item_norm - tf.ones_like(item_norm), tf.zeros_like(item_norm)))
+            self.item_normalization_penalty = tf.reduce_mean(tf.maximum(item_norm - tf.ones_like(item_norm), tf.zeros_like(item_norm)))
             self.elements.append(self.item_normalization_penalty)
 
         squared_error = tf.losses.mean_squared_error(self.input_ratings, self.predictions)
@@ -85,8 +79,7 @@ class MatrixFactorizationGraph(object):
         self.bias_error = tf.sqrt(bias_squared_error, name='bias_error')
 
         bias_var_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=f'{scope_name}_bias')
-        latent_factor_var_list = tf.get_collection(
-            tf.GraphKeys.TRAINABLE_VARIABLES, scope=f'{scope_name}_latent_factor')
+        latent_factor_var_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=f'{scope_name}_latent_factor')
 
         optimizer = tf.contrib.opt.LazyAdamOptimizer(learning_rate=self.input_learning_rate)
         self.bias_op = optimizer.apply_gradients(optimizer.compute_gradients(self.bias_loss, var_list=bias_var_list))
@@ -186,30 +179,27 @@ class MatrixFactorization(object):
 
             logger.info('start to optimize bias...')
             # This training makes the model fit the input data bias.
-            self._train(
-                epoch_size=self.bias_epoch_size,
-                op=self.graph.bias_op,
-                loss=self.graph.bias_loss,
-                error=self.graph.bias_error,
-                iterator=iterator,
-                next_batch=next_batch,
-                test_feed_dict=test_feed_dict,
-                early_stopping=EarlyStopping(save_directory=self.save_directory_path, learning_rate=self.learning_rate))
+            self._train(epoch_size=self.bias_epoch_size,
+                        op=self.graph.bias_op,
+                        loss=self.graph.bias_loss,
+                        error=self.graph.bias_error,
+                        iterator=iterator,
+                        next_batch=next_batch,
+                        test_feed_dict=test_feed_dict,
+                        early_stopping=EarlyStopping(save_directory=self.save_directory_path, learning_rate=self.learning_rate))
 
             logger.info('start to optimize latent factor...')
-            self._train(
-                epoch_size=self.epoch_size,
-                op=self.graph.op,
-                loss=self.graph.loss,
-                error=self.graph.error,
-                iterator=iterator,
-                next_batch=next_batch,
-                test_feed_dict=test_feed_dict,
-                early_stopping=EarlyStopping(
-                    save_directory=self.save_directory_path,
-                    try_count=self.try_count,
-                    learning_rate=self.learning_rate,
-                    decay_speed=self.decay_speed))
+            self._train(epoch_size=self.epoch_size,
+                        op=self.graph.op,
+                        loss=self.graph.loss,
+                        error=self.graph.error,
+                        iterator=iterator,
+                        next_batch=next_batch,
+                        test_feed_dict=test_feed_dict,
+                        early_stopping=EarlyStopping(save_directory=self.save_directory_path,
+                                                     try_count=self.try_count,
+                                                     learning_rate=self.learning_rate,
+                                                     decay_speed=self.decay_speed))
 
     def _train(self, epoch_size, op, loss, error, iterator, next_batch, test_feed_dict, early_stopping):
         test_loss, test_error = self.session.run([loss, error], feed_dict=test_feed_dict)
@@ -251,8 +241,7 @@ class MatrixFactorization(object):
         user_indices = self._convert(user_ids, self.user2index)
         item_indices = self._convert(item_ids, self.item2index)
         service_indices = self._convert(service_ids, self.service2index)
-        valid_inputs = np.where(
-            np.logical_and(np.logical_and(user_indices != -1, item_indices != -1), service_indices != -1))[0]
+        valid_inputs = np.where(np.logical_and(np.logical_and(user_indices != -1, item_indices != -1), service_indices != -1))[0]
 
         with self.session.as_default():
             feed_dict = {
@@ -297,17 +286,16 @@ class MatrixFactorization(object):
         return np.array([id2index.get(i, -1) for i in ids])
 
     def _make_graph(self) -> MatrixFactorizationGraph:
-        return MatrixFactorizationGraph(
-            n_items=self.n_items,
-            n_users=self.n_users,
-            n_latent_factors=self.n_latent_factors,
-            n_services=self.n_services,
-            reg_item=self.reg_item,
-            reg_user=self.reg_user,
-            scope_name=self.scope_name,
-            use_l2_upper_regularization=self.use_l2_upper_regularization,
-            average=self.average,
-            standard_deviation=self.standard_deviation)
+        return MatrixFactorizationGraph(n_items=self.n_items,
+                                        n_users=self.n_users,
+                                        n_latent_factors=self.n_latent_factors,
+                                        n_services=self.n_services,
+                                        reg_item=self.reg_item,
+                                        reg_user=self.reg_user,
+                                        scope_name=self.scope_name,
+                                        use_l2_upper_regularization=self.use_l2_upper_regularization,
+                                        average=self.average,
+                                        standard_deviation=self.standard_deviation)
 
     def save(self, file_path: str) -> None:
         redshells.model.utils.save_tf_session(self, self.session, file_path)
@@ -315,6 +303,5 @@ class MatrixFactorization(object):
     @staticmethod
     def load(file_path: str) -> 'MatrixFactorization':
         session = tf.Session()
-        model = redshells.model.utils.load_tf_session(MatrixFactorization, session, file_path,
-                                                      MatrixFactorization._make_graph)  # type: MatrixFactorization
+        model = redshells.model.utils.load_tf_session(MatrixFactorization, session, file_path, MatrixFactorization._make_graph)  # type: MatrixFactorization
         return model

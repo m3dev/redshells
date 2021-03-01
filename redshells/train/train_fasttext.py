@@ -16,17 +16,14 @@ class TrainFastText(gokart.TaskOnKart):
     tokenized_text_data_task = gokart.TaskInstanceParameter(
         description='The task outputs tokenized texts with type `List[List[str]]` or `List[str]` separated with space.')
     fasttext_kwargs = luigi.DictParameter(
-        default=dict(),
-        description='Arguments for FastText except "sentences". Please see gensim.models.FastText for more details.'
-    )  # type: Dict[str, Any]
+        default=dict(), description='Arguments for FastText except "sentences". Please see gensim.models.FastText for more details.')  # type: Dict[str, Any]
     output_file_path = luigi.Parameter(default='model/fasttext.zip')  # type: str
 
     def requires(self):
         return self.tokenized_text_data_task
 
     def output(self):
-        return self.make_model_target(
-            self.output_file_path, save_function=gensim.models.FastText.save, load_function=gensim.models.FastText.load)
+        return self.make_model_target(self.output_file_path, save_function=gensim.models.FastText.save, load_function=gensim.models.FastText.load)
 
     def run(self):
         texts = self.load()
