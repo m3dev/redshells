@@ -19,8 +19,7 @@ class PreprocessMLData(gokart.TaskOnKart):
     text_data_file_path = luigi.Parameter()  # type: str
 
     def requires(self):
-        return redshells.data.LoadExistingFile(
-            file_path=os.path.join(self.workspace_directory, self.text_data_file_path))
+        return redshells.data.LoadExistingFile(file_path=os.path.join(self.workspace_directory, self.text_data_file_path))
 
     def output(self):
         return self.make_target('ml/preprocess_for_gc.pkl')
@@ -66,41 +65,36 @@ class GraphConvolutionalMatrixCompletionExample(gokart.TaskOnKart):
                 weight_sharing=True,
                 epoch_size=40,
                 scope_name='GraphConvolutionalMatrixCompletionExample',
-                save_directory_path=os.path.join(self.local_temporary_directory,
-                                                 'graph_convolutional_matrix_completion'),
+                save_directory_path=os.path.join(self.local_temporary_directory, 'graph_convolutional_matrix_completion'),
             ),
             output_file_path=f'ml/model/model.zip')
         return task
 
     def requires(self):
         data_task = PreprocessMLData(text_data_file_path=self.text_data_file_path)
-        data_task = redshells.data.data_frame_utils.SplitTrainTestData(
-            data_task=data_task,
-            test_size_rate=0.2,
-            train_output_file_path='ml/train_data.pkl',
-            test_output_file_path='ml/test_data.pkl')
+        data_task = redshells.data.data_frame_utils.SplitTrainTestData(data_task=data_task,
+                                                                       test_size_rate=0.2,
+                                                                       train_output_file_path='ml/train_data.pkl',
+                                                                       test_output_file_path='ml/test_data.pkl')
         train_data_task = redshells.data.LoadDataOfTask(data_task=data_task, target_name='train')
         test_data_task = redshells.data.LoadDataOfTask(data_task=data_task, target_name='test')
         train_tasks = [
-            self._make_train_task(
-                train_data_task,
-                batch_size=batch_size,
-                dropout_rate=dropout_rate,
-                encoder_hidden_size=encoder_hidden_size,
-                encoder_size=encoder_size,
-                normalization_type=normalization_type) for batch_size in [10] for dropout_rate in [0.7]
-            for encoder_hidden_size in [500] for encoder_size in [75, 150]
-            for normalization_type in ['left', 'right', 'symmetric']
+            self._make_train_task(train_data_task,
+                                  batch_size=batch_size,
+                                  dropout_rate=dropout_rate,
+                                  encoder_hidden_size=encoder_hidden_size,
+                                  encoder_size=encoder_size,
+                                  normalization_type=normalization_type) for batch_size in [10] for dropout_rate in [0.7] for encoder_hidden_size in [500]
+            for encoder_size in [75, 150] for normalization_type in ['left', 'right', 'symmetric']
         ]
 
-        model = self._make_train_task(
-            train_data_task,
-            batch_size=10,
-            dropout_rate=0.7,
-            encoder_hidden_size=500,
-            encoder_size=75,
-            normalization_type='left',
-            learning_rate=1e-3)
+        model = self._make_train_task(train_data_task,
+                                      batch_size=10,
+                                      dropout_rate=0.7,
+                                      encoder_hidden_size=500,
+                                      encoder_size=75,
+                                      normalization_type='left',
+                                      learning_rate=1e-3)
         return dict(optimize=train_tasks, test_data=test_data_task, model=model, train_data=train_data_task)
 
     def output(self):

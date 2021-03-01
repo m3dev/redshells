@@ -39,7 +39,11 @@ class GcmcDataset(object):
 
 
 class GcmcIdMap(object):
-    def __init__(self, ids: np.ndarray, features: Optional[List[Dict[Any, np.ndarray]]] = None, min_count=0, max_count=sys.maxsize,
+    def __init__(self,
+                 ids: np.ndarray,
+                 features: Optional[List[Dict[Any, np.ndarray]]] = None,
+                 min_count=0,
+                 max_count=sys.maxsize,
                  use_default: bool = True) -> None:
         self._ids = ids
         id_count = dict(Counter(ids))

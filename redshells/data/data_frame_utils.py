@@ -173,8 +173,7 @@ class SplitTrainTestData(gokart.TaskOnKart):
         return self.data_task
 
     def output(self):
-        return dict(
-            train=self.make_target(self.train_output_file_path), test=self.make_target(self.test_output_file_path))
+        return dict(train=self.make_target(self.train_output_file_path), test=self.make_target(self.test_output_file_path))
 
     def run(self):
         data = self.load_data_frame()

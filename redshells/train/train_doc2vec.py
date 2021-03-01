@@ -10,20 +10,16 @@ import luigi
 
 class TrainDoc2Vec(gokart.TaskOnKart):
     task_namespace = 'redshells'
-    tokenized_text_data_task = gokart.TaskInstanceParameter(
-        description='The task outputs tokenized texts with type "List[List[str]]".')
+    tokenized_text_data_task = gokart.TaskInstanceParameter(description='The task outputs tokenized texts with type "List[List[str]]".')
     output_file_path = luigi.Parameter(default='model/doc2vec.zip')  # type: str
     doc2vec_kwargs = luigi.DictParameter(
-        default=dict(),
-        description='Arguments for Doc2Vec except "documents". Please see gensim.models.Doc2Vec for more details.'
-    )  # type: Dict[str, Any]
+        default=dict(), description='Arguments for Doc2Vec except "documents". Please see gensim.models.Doc2Vec for more details.')  # type: Dict[str, Any]
 
     def requires(self):
         return self.tokenized_text_data_task
 
     def output(self):
-        return self.make_model_target(
-            self.output_file_path, save_function=gensim.models.Doc2Vec.save, load_function=gensim.models.Doc2Vec.load)
+        return self.make_model_target(self.output_file_path, save_function=gensim.models.Doc2Vec.save, load_function=gensim.models.Doc2Vec.load)
 
     def run(self):
         texts = self.load()  # type: List[List[str]]

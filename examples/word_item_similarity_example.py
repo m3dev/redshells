@@ -37,9 +37,8 @@ class MakeDummyItemData(gokart.TaskOnKart):
     def run(self):
         words = self.load()
         results = pd.DataFrame(
-            dict(
-                item_id=[f'item_{i}' for i in range(self.data_size)],
-                text=[list(np.random.choice(words, size=100, replace=True)) for _ in range(self.data_size)]))
+            dict(item_id=[f'item_{i}' for i in range(self.data_size)],
+                 text=[list(np.random.choice(words, size=100, replace=True)) for _ in range(self.data_size)]))
         self.dump(results)
 
 
@@ -59,10 +58,9 @@ class MakeDummyClickData(gokart.TaskOnKart):
         items = item_data['item_id'].unique()
         users = [f'user_{u}' for u in range(self.user_size)]
         results = pd.DataFrame(
-            dict(
-                user_id=np.random.choice(users, size=self.data_size, replace=True),
-                item_id=np.random.choice(items, size=self.data_size, replace=True),
-                service_id=0))
+            dict(user_id=np.random.choice(users, size=self.data_size, replace=True),
+                 item_id=np.random.choice(items, size=self.data_size, replace=True),
+                 service_id=0))
         self.dump(results)
 
 
@@ -74,11 +72,10 @@ class WordItemSimilarityExample(gokart.TaskOnKart):
         item_train_data = MakeDummyItemData()
         click_data = MakeDummyClickData()
         item_predict_data = MakeDummyItemData(data_size=1000)
-        return redshells.app.word_item_similarity.BuildWordItemSimilarity(
-            word_data_task=word_data,
-            item_train_data_task=item_train_data,
-            click_data_task=click_data,
-            item_predict_data_task=item_predict_data)
+        return redshells.app.word_item_similarity.BuildWordItemSimilarity(word_data_task=word_data,
+                                                                          item_train_data_task=item_train_data,
+                                                                          click_data_task=click_data,
+                                                                          item_predict_data_task=item_predict_data)
 
     def output(self):
         return self.make_target('word_item_similarity/example.pkl')

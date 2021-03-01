@@ -23,21 +23,19 @@ class TestTrainFeatureAggregationSimilarityModel(unittest.TestCase):
         self.dump_data = None
 
     def test_run(self):
-        task = TrainFeatureAggregationSimilarityModel(
-            dataset_task=_DummyTask(),
-            embedding_size=7,
-            learning_rate=0.001,
-            batch_size=1,
-            epoch_size=5,
-            early_stopping_patience=2,
-            max_data_size=7,
-            test_size_rate=0.4)
-        self.input_data = FeatureAggregationSimilarityDataset(
-            x_item_indices=np.array([0, 1, 2]),
-            y_item_indices=np.array([3, 2, 1]),
-            x_item_features=np.array([[0, 1], [1, 2], [2, 4]]),
-            y_item_features=np.array([[5, 0], [0, 4], [3, 2]]),
-            scores=np.array([0.1, 0.2, 0.4]))
+        task = TrainFeatureAggregationSimilarityModel(dataset_task=_DummyTask(),
+                                                      embedding_size=7,
+                                                      learning_rate=0.001,
+                                                      batch_size=1,
+                                                      epoch_size=5,
+                                                      early_stopping_patience=2,
+                                                      max_data_size=7,
+                                                      test_size_rate=0.4)
+        self.input_data = FeatureAggregationSimilarityDataset(x_item_indices=np.array([0, 1, 2]),
+                                                              y_item_indices=np.array([3, 2, 1]),
+                                                              x_item_features=np.array([[0, 1], [1, 2], [2, 4]]),
+                                                              y_item_features=np.array([[5, 0], [0, 4], [3, 2]]),
+                                                              scores=np.array([0.1, 0.2, 0.4]))
         task.load = MagicMock(side_effect=self._load)
         task.dump = MagicMock(side_effect=self._dump)
         task.run()

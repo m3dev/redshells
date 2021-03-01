@@ -79,25 +79,23 @@ class GraphConvolutionalMatrixCompletionGraph(object):
             # encoder
             self.common_encoder_layer = self._simple_layer(encoder_size)
 
-            self.item_encoder_hidden = self._encoder(
-                feature_size=n_user,
-                encoder_hidden_size=encoder_hidden_size,
-                n_rating=n_rating,
-                cx=self.user_cx,
-                dropout=self.input_dropout,
-                weight_sharing=weight_sharing,
-                edge_size=self.input_edge_size,
-                prefix='item')
+            self.item_encoder_hidden = self._encoder(feature_size=n_user,
+                                                     encoder_hidden_size=encoder_hidden_size,
+                                                     n_rating=n_rating,
+                                                     cx=self.user_cx,
+                                                     dropout=self.input_dropout,
+                                                     weight_sharing=weight_sharing,
+                                                     edge_size=self.input_edge_size,
+                                                     prefix='item')
 
-            self.user_encoder_hidden = self._encoder(
-                feature_size=n_item,
-                encoder_hidden_size=encoder_hidden_size,
-                n_rating=n_rating,
-                cx=self.item_cx,
-                dropout=self.input_dropout,
-                weight_sharing=weight_sharing,
-                edge_size=self.input_edge_size,
-                prefix='user')
+            self.user_encoder_hidden = self._encoder(feature_size=n_item,
+                                                     encoder_hidden_size=encoder_hidden_size,
+                                                     n_rating=n_rating,
+                                                     cx=self.item_cx,
+                                                     dropout=self.input_dropout,
+                                                     weight_sharing=weight_sharing,
+                                                     edge_size=self.input_edge_size,
+                                                     prefix='user')
 
             self.item_encoder = self.common_encoder_layer(self.item_encoder_hidden)
             self.user_encoder = self.common_encoder_layer(self.user_encoder_hidden)
@@ -248,8 +246,11 @@ class GraphConvolutionalMatrixCompletion(object):
             self.graph = self._make_graph()
             logger.info('done making graph')
 
-        early_stopping = EarlyStopping(
-            try_count=try_count, decay_speed=decay_speed, save_directory=self.save_directory_path, learning_rate=self.learning_rate, threshold=1e-4)
+        early_stopping = EarlyStopping(try_count=try_count,
+                                       decay_speed=decay_speed,
+                                       save_directory=self.save_directory_path,
+                                       learning_rate=self.learning_rate,
+                                       threshold=1e-4)
 
         test_data = self.graph_dataset.test_data()
         report = []
@@ -286,21 +287,41 @@ class GraphConvolutionalMatrixCompletion(object):
         return report
 
     def predict(self, user_ids: List, item_ids: List, with_user_embedding: bool = True) -> np.ndarray:
-        return self._predict(
-            user_ids=user_ids, item_ids=item_ids, with_user_embedding=with_user_embedding, graph=self.graph, dataset=self.graph_dataset, session=self.session)
+        return self._predict(user_ids=user_ids,
+                             item_ids=item_ids,
+                             with_user_embedding=with_user_embedding,
+                             graph=self.graph,
+                             dataset=self.graph_dataset,
+                             session=self.session)
 
     def predict_with_new_items(self, user_ids: List, item_ids: List, additional_dataset: GcmcDataset, with_user_embedding: bool = True) -> np.ndarray:
         dataset = self.graph_dataset.add_dataset(additional_dataset, add_item=True)
-        return self._predict(
-            user_ids=user_ids, item_ids=item_ids, with_user_embedding=with_user_embedding, graph=self.graph, dataset=dataset, session=self.session)
+        return self._predict(user_ids=user_ids,
+                             item_ids=item_ids,
+                             with_user_embedding=with_user_embedding,
+                             graph=self.graph,
+                             dataset=dataset,
+                             session=self.session)
 
     def get_user_feature(self, user_ids: List, item_ids: List, additional_dataset: GcmcDataset, with_user_embedding: bool = True) -> np.ndarray:
         dataset = self.graph_dataset.add_dataset(additional_dataset, add_item=True)
-        return self._get_feature(user_ids=user_ids, item_ids=item_ids, with_user_embedding=with_user_embedding, graph=self.graph, dataset=dataset, session=self.session, feature='user')
+        return self._get_feature(user_ids=user_ids,
+                                 item_ids=item_ids,
+                                 with_user_embedding=with_user_embedding,
+                                 graph=self.graph,
+                                 dataset=dataset,
+                                 session=self.session,
+                                 feature='user')
 
     def get_item_feature(self, user_ids: List, item_ids: List, additional_dataset: GcmcDataset, with_user_embedding: bool = True) -> np.ndarray:
         dataset = self.graph_dataset.add_dataset(additional_dataset, add_item=True)
-        return self._get_feature(user_ids=user_ids, item_ids=item_ids, with_user_embedding=with_user_embedding, graph=self.graph, dataset=dataset, session=self.session, feature='item')
+        return self._get_feature(user_ids=user_ids,
+                                 item_ids=item_ids,
+                                 with_user_embedding=with_user_embedding,
+                                 graph=self.graph,
+                                 dataset=dataset,
+                                 session=self.session,
+                                 feature='item')
 
     @classmethod
     def _predict(cls, user_ids: List, item_ids: List, with_user_embedding, graph: GraphConvolutionalMatrixCompletionGraph, dataset: GcmcGraphDataset,
@@ -323,8 +344,7 @@ class GraphConvolutionalMatrixCompletion(object):
         return predictions
 
     @classmethod
-    def _get_feature(cls, user_ids: List, item_ids: List, with_user_embedding,
-                     graph: GraphConvolutionalMatrixCompletionGraph, dataset: GcmcGraphDataset,
+    def _get_feature(cls, user_ids: List, item_ids: List, with_user_embedding, graph: GraphConvolutionalMatrixCompletionGraph, dataset: GcmcGraphDataset,
                      session: tf.Session, feature: str) -> np.ndarray:
         if graph is None:
             RuntimeError('Please call fit first.')
@@ -335,8 +355,7 @@ class GraphConvolutionalMatrixCompletion(object):
             user_indices = np.array([0] * len(user_indices))  # TODO use default user index.
 
         user_feature_indices, item_feature_indices = dataset.to_feature_indices(user_ids, item_ids)
-        input_data = dict(user=user_indices, item=item_indices, user_feature_indices=user_feature_indices,
-                          item_feature_indices=item_feature_indices)
+        input_data = dict(user=user_indices, item=item_indices, user_feature_indices=user_feature_indices, item_feature_indices=item_feature_indices)
         feed_dict = cls._feed_dict(input_data, graph, dataset, rating_adjacency_matrix, is_train=False)
         encoder_map = dict(user=graph.user_encoder, item=graph.item_encoder)
         with session.as_default():
@@ -393,19 +412,18 @@ class GraphConvolutionalMatrixCompletion(object):
         return items, item_feature
 
     def _make_graph(self) -> GraphConvolutionalMatrixCompletionGraph:
-        return GraphConvolutionalMatrixCompletionGraph(
-            n_rating=self.graph_dataset.n_rating,
-            n_user=self.graph_dataset.n_user,
-            n_item=self.graph_dataset.n_item,
-            rating=self.graph_dataset.rating(),
-            normalization_type=self.normalization_type,
-            encoder_hidden_size=self.encoder_hidden_size,
-            encoder_size=self.encoder_size,
-            weight_sharing=self.weight_sharing,
-            scope_name=self.scope_name,
-            user_feature_sizes=[x.shape[1] for x in self.graph_dataset.user_features],
-            item_feature_sizes=[x.shape[1] for x in self.graph_dataset.item_features],
-            ignore_item_embedding=self.ignore_item_embedding)
+        return GraphConvolutionalMatrixCompletionGraph(n_rating=self.graph_dataset.n_rating,
+                                                       n_user=self.graph_dataset.n_user,
+                                                       n_item=self.graph_dataset.n_item,
+                                                       rating=self.graph_dataset.rating(),
+                                                       normalization_type=self.normalization_type,
+                                                       encoder_hidden_size=self.encoder_hidden_size,
+                                                       encoder_size=self.encoder_size,
+                                                       weight_sharing=self.weight_sharing,
+                                                       scope_name=self.scope_name,
+                                                       user_feature_sizes=[x.shape[1] for x in self.graph_dataset.user_features],
+                                                       item_feature_sizes=[x.shape[1] for x in self.graph_dataset.item_features],
+                                                       ignore_item_embedding=self.ignore_item_embedding)
 
     @staticmethod
     def _eliminate(matrix: sp.csr_matrix, user_indices, item_indices):

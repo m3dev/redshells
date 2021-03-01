@@ -61,6 +61,7 @@ def _catboostclassifier_default(trial: optuna.trial.Trial):
 
     return params
 
+
 class _OptunaParamFactory(metaclass=Singleton):
     def __init__(self):
         self._rules = dict()
@@ -70,9 +71,7 @@ class _OptunaParamFactory(metaclass=Singleton):
 
     def get(self, key: str, trial: optuna.trial.Trial):
         if key not in self._rules:
-            raise RuntimeError(
-                f'"{key}" is not registered. Please class "register_optuna_param" beforehand. The keys are {list(self._rules.keys())}'
-            )
+            raise RuntimeError(f'"{key}" is not registered. Please class "register_optuna_param" beforehand. The keys are {list(self._rules.keys())}')
 
         return self._rules[key](trial)
 

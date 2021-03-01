@@ -42,10 +42,10 @@ class TrainGraphConvolutionalMatrixCompletion(gokart.TaskOnKart):
         return dict(train_data=self.train_data_task, user_features=self.user_feature_task, item_features=self.item_feature_task)
 
     def output(self):
-        return dict(
-            model=self.make_model_target(
-                self.output_file_path, save_function=GraphConvolutionalMatrixCompletion.save, load_function=GraphConvolutionalMatrixCompletion.load),
-            report=self.make_target('model_report/report.txt'))
+        return dict(model=self.make_model_target(self.output_file_path,
+                                                 save_function=GraphConvolutionalMatrixCompletion.save,
+                                                 load_function=GraphConvolutionalMatrixCompletion.load),
+                    report=self.make_target('model_report/report.txt'))
 
     def run(self):
         tf.reset_default_graph()
@@ -62,8 +62,10 @@ class TrainGraphConvolutionalMatrixCompletion(gokart.TaskOnKart):
         ratings = df[self.rating_column_name].values
 
         dataset = GcmcDataset(user_ids=user_ids, item_ids=item_ids, ratings=ratings, user_features=user_features, item_features=item_features)
-        graph_dataset = GcmcGraphDataset(
-            dataset=dataset, test_size=self.test_size, min_user_click_count=self.min_user_click_count, max_user_click_count=self.max_user_click_count)
+        graph_dataset = GcmcGraphDataset(dataset=dataset,
+                                         test_size=self.test_size,
+                                         min_user_click_count=self.min_user_click_count,
+                                         max_user_click_count=self.max_user_click_count)
         model = GraphConvolutionalMatrixCompletion(graph_dataset=graph_dataset, **self.model_kwargs)
         self.task_log['report'] = [str(self.model_kwargs)] + model.fit(try_count=self.try_count, decay_speed=self.decay_speed)
         self.dump(self.task_log['report'], 'report')

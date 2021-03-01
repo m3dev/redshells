@@ -23,8 +23,7 @@ class CalculateDocumentEmbedding(gokart.TaskOnKart):
 
     def run(self):
         scdv = self.load('scdv')
-        document = self.load_data_frame(
-            'document', required_columns={self.item_id_column_name, self.document_column_name})
+        document = self.load_data_frame('document', required_columns={self.item_id_column_name, self.document_column_name})
 
         documents = document[self.document_column_name].tolist()
         embeddings = scdv.infer_vector(documents, l2_normalize=self.l2_normalize)

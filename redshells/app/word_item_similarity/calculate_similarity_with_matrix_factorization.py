@@ -20,12 +20,10 @@ class CalculateSimilarityWithMatrixFactorization(gokart.TaskOnKart):
     """
     task_namespace = 'redshells.word_item_similarity'
     target_item_task = gokart.TaskInstanceParameter(description='A task outputs item ids as type List.')
-    matrix_factorization_task = gokart.TaskInstanceParameter(
-        description='A task instance of `TrainMatrixFactorization`.')
+    matrix_factorization_task = gokart.TaskInstanceParameter(description='A task instance of `TrainMatrixFactorization`.')
     normalize = luigi.BoolParameter(description='Normalize item factors with l2 norm.')  # type: bool
     batch_size = luigi.IntParameter(default=1000, significant=False)
-    output_file_path = luigi.Parameter(
-        default='app/word_item_similarity/calculate_similarity_with_matrix_factorization.zip')  # type: str
+    output_file_path = luigi.Parameter(default='app/word_item_similarity/calculate_similarity_with_matrix_factorization.zip')  # type: str
 
     def requires(self):
         assert type(self.matrix_factorization_task) == redshells.train.TrainMatrixFactorization,\
@@ -55,11 +53,7 @@ class CalculateSimilarityWithMatrixFactorization(gokart.TaskOnKart):
                 indices_ = np.indices([x_ids.shape[0], y_ids.shape[0]])
                 indices = (indices_[0].flatten(), indices_[1].flatten())
 
-            df = pd.DataFrame({
-                'item_id_0': list(x_ids[indices[0]]),
-                'item_id_1': list(y_ids[indices[1]]),
-                'similarity': list(np.dot(x, y.T)[indices])
-            })
+            df = pd.DataFrame({'item_id_0': list(x_ids[indices[0]]), 'item_id_1': list(y_ids[indices[1]]), 'similarity': list(np.dot(x, y.T)[indices])})
             return df
 
         results = pd.concat([

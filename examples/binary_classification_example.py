@@ -31,14 +31,13 @@ class OptimizeModelExample(gokart.TaskOnKart):
     def requires(self):
         data = MakeData()
         redshells.factory.register_prediction_model('XGBClassifier', xgboost.XGBClassifier)
-        return redshells.train.OptimizeBinaryClassificationModel(
-            rerun=True,
-            train_data_task=data,
-            target_column_name='y',
-            model_name='XGBClassifier',
-            model_kwargs=dict(n_estimators=50),
-            test_size=0.2,
-            optuna_param_name='XGBClassifier_default')
+        return redshells.train.OptimizeBinaryClassificationModel(rerun=True,
+                                                                 train_data_task=data,
+                                                                 target_column_name='y',
+                                                                 model_name='XGBClassifier',
+                                                                 model_kwargs=dict(n_estimators=50),
+                                                                 test_size=0.2,
+                                                                 optuna_param_name='XGBClassifier_default')
 
     def output(self):
         return self.make_target('binary_classification/results.pkl')

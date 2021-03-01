@@ -69,38 +69,34 @@ class FilterNetflixData(gokart.TaskOnKart):
 
 class MatrixFactorizationExample(gokart.TaskOnKart):
     task_namespace = 'examples'
-    text_data_file_paths = luigi.ListParameter(
-        default=[f'./resources/netflix/combined_data_{i}.txt' for i in range(1, 5)])  # type: List[str]
+    text_data_file_paths = luigi.ListParameter(default=[f'./resources/netflix/combined_data_{i}.txt' for i in range(1, 5)])  # type: List[str]
     data_size_rate = luigi.FloatParameter()
 
     def requires(self):
-        data_task = FilterNetflixData(
-            text_data_file_paths=self.text_data_file_paths, data_size_rate=self.data_size_rate)
-        data_task = redshells.data.data_frame_utils.SplitTrainTestData(
-            data_task=data_task,
-            test_size_rate=0.1,
-            train_output_file_path='netflix/train_data.pkl',
-            test_output_file_path='netflix/test_data.pkl')
+        data_task = FilterNetflixData(text_data_file_paths=self.text_data_file_paths, data_size_rate=self.data_size_rate)
+        data_task = redshells.data.data_frame_utils.SplitTrainTestData(data_task=data_task,
+                                                                       test_size_rate=0.1,
+                                                                       train_output_file_path='netflix/train_data.pkl',
+                                                                       test_output_file_path='netflix/test_data.pkl')
         train_data_task = redshells.data.LoadDataOfTask(data_task=data_task, target_name='train')
         test_data_task = redshells.data.LoadDataOfTask(data_task=data_task, target_name='test')
-        validation_task = redshells.train.TrainMatrixFactorization(
-            train_data_task=train_data_task,
-            user_column_name='user_id',
-            item_column_name='item_id',
-            service_column_name='service_id',
-            rating_column_name='rating',
-            model_kwargs=dict(
-                n_latent_factors=20,
-                learning_rate=1e-3,
-                reg_item=1e-5,
-                reg_user=1e-5,
-                batch_size=2**16,
-                epoch_size=100,
-                test_size=0.1,
-                scope_name='MatrixFactorizationExample',
-                save_directory_path=os.path.join(self.local_temporary_directory, 'matrix_factorization'),
-            ),
-            output_file_path='netflix/model.zip')
+        validation_task = redshells.train.TrainMatrixFactorization(train_data_task=train_data_task,
+                                                                   user_column_name='user_id',
+                                                                   item_column_name='item_id',
+                                                                   service_column_name='service_id',
+                                                                   rating_column_name='rating',
+                                                                   model_kwargs=dict(
+                                                                       n_latent_factors=20,
+                                                                       learning_rate=1e-3,
+                                                                       reg_item=1e-5,
+                                                                       reg_user=1e-5,
+                                                                       batch_size=2**16,
+                                                                       epoch_size=100,
+                                                                       test_size=0.1,
+                                                                       scope_name='MatrixFactorizationExample',
+                                                                       save_directory_path=os.path.join(self.local_temporary_directory, 'matrix_factorization'),
+                                                                   ),
+                                                                   output_file_path='netflix/model.zip')
 
         return dict(model=validation_task, test_data=test_data_task)
 
@@ -112,12 +108,10 @@ class MatrixFactorizationExample(gokart.TaskOnKart):
         model = self.load('model')  # type: redshells.model.MatrixFactorization
         test_data = self.load_data_frame('test_data')
 
-        predictions = model.predict(
-            user_ids=test_data['user_id'], item_ids=test_data['item_id'], service_ids=test_data['service_id'])
+        predictions = model.predict(user_ids=test_data['user_id'], item_ids=test_data['item_id'], service_ids=test_data['service_id'])
         valid_indices = np.where(~np.isnan(predictions))[0]
 
-        error = np.sqrt(
-            sklearn.metrics.mean_squared_error(predictions[valid_indices], test_data['rating'].values[valid_indices]))
+        error = np.sqrt(sklearn.metrics.mean_squared_error(predictions[valid_indices], test_data['rating'].values[valid_indices]))
 
         logger.info(f'error={error}')
         self.dump(error)

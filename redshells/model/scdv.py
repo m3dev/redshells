@@ -17,7 +17,6 @@ class SCDV(object):
     See https://arxiv.org/pdf/1612.06778.pdf for details
 
     """
-
     def __init__(self, documents: List[List[str]], cluster_size: int, sparsity_percentage: float, gaussian_mixture_kwargs: Dict[Any, Any],
                  dictionary: gensim.corpora.Dictionary, w2v: Union[FastText, Word2Vec]) -> None:
         """

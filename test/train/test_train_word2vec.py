@@ -19,8 +19,7 @@ class TrainWord2VecTest(unittest.TestCase):
 
     def test_run(self):
         self.input_data = [['a', 'b'], ['a', 'c', 'd', 'e'], ['a']]
-        task = redshells.train.TrainWord2Vec(
-            tokenized_text_data_task=_DummyTask(), word2vec_kwargs=dict(size=3, min_count=1))
+        task = redshells.train.TrainWord2Vec(tokenized_text_data_task=_DummyTask(), word2vec_kwargs=dict(size=3, min_count=1))
         task.load = MagicMock(side_effect=self._load)
         task.dump = MagicMock(side_effect=self._dump)
 

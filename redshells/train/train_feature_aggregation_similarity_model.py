@@ -40,17 +40,15 @@ class TrainFeatureAggregationSimilarityModel(gokart.TaskOnKart):
                      f'item_size={item_size},'
                      f'max_feature_index={max_feature_index}')
 
-        model = FeatureAggregationSimilarityModel(
-            embedding_size=self.embedding_size,
-            learning_rate=self.learning_rate,
-            feature_size=feature_size,
-            item_size=item_size,
-            max_feature_index=max_feature_index)
+        model = FeatureAggregationSimilarityModel(embedding_size=self.embedding_size,
+                                                  learning_rate=self.learning_rate,
+                                                  feature_size=feature_size,
+                                                  item_size=item_size,
+                                                  max_feature_index=max_feature_index)
 
-        model.fit(
-            dataset=dataset.get(size=self.max_data_size, batch_size=self.batch_size),
-            epoch_size=self.epoch_size,
-            test_size_rate=self.test_size_rate,
-            early_stopping_patience=self.early_stopping_patience)
+        model.fit(dataset=dataset.get(size=self.max_data_size, batch_size=self.batch_size),
+                  epoch_size=self.epoch_size,
+                  test_size_rate=self.test_size_rate,
+                  early_stopping_patience=self.early_stopping_patience)
 
         self.dump(model)

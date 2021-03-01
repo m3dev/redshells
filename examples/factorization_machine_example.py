@@ -113,20 +113,19 @@ class FactorizationMachineExample(gokart.TaskOnKart):
         train_test_data = SplitTrainTestData(data_task=data_task, test_size_rate=0.1)
         train_data_task = redshells.data.LoadDataOfTask(data_task=train_test_data, target_name='train')
         test_data_task = redshells.data.LoadDataOfTask(data_task=train_test_data, target_name='test')
-        validation_task = redshells.train.TrainFactorizationMachine(
-            train_data_task=train_data_task,
-            target_column_name='label',
-            model_name='FactorizationMachine',
-            model_kwargs=dict(
-                embedding_size=10,
-                l2_weight=1e-6,
-                learning_rate=1e-4,
-                batch_size=2**8,
-                epoch_size=100,
-                test_size=0.1,
-                save_directory_path=os.path.join(self.local_temporary_directory, 'factorization_machine'),
-                scope_name='FactorizationMachineExample'),
-            output_file_path='criteo/validation.zip')
+        validation_task = redshells.train.TrainFactorizationMachine(train_data_task=train_data_task,
+                                                                    target_column_name='label',
+                                                                    model_name='FactorizationMachine',
+                                                                    model_kwargs=dict(embedding_size=10,
+                                                                                      l2_weight=1e-6,
+                                                                                      learning_rate=1e-4,
+                                                                                      batch_size=2**8,
+                                                                                      epoch_size=100,
+                                                                                      test_size=0.1,
+                                                                                      save_directory_path=os.path.join(
+                                                                                          self.local_temporary_directory, 'factorization_machine'),
+                                                                                      scope_name='FactorizationMachineExample'),
+                                                                    output_file_path='criteo/validation.zip')
         return dict(model=validation_task, test_data=test_data_task)
 
     def output(self):

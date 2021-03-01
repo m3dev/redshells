@@ -33,9 +33,7 @@ class _PredictionModelFactory(metaclass=Singleton):
     def get(self, key: str):
         if key in self._models:
             return self._models[key]
-        raise RuntimeError(
-            f'"{key}" is not registered. Please class "register_prediction_model" beforehand. The keys are {list(self._models.keys())}'
-        )
+        raise RuntimeError(f'"{key}" is not registered. Please class "register_prediction_model" beforehand. The keys are {list(self._models.keys())}')
 
     def register(self, key, class_name):
         self._models[key] = class_name
