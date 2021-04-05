@@ -16,7 +16,7 @@ pattern = "^(?P<base>\\d+\\.\\d+\\.\\d+)"
 
 [tool.poetry.dependencies]
 python = "^3.7"
-gokart = "^0.1.20"
+gokart = ">=0.1.20"
 pandas = "<1.2"
 numpy = "*"
 scipy = "*"
@@ -24,7 +24,7 @@ gensim = "3.8.3"
 scikit-learn = "*"
 tqdm = "*"
 docutils = "==0.15"
-optuna = "^0.6.0"
+optuna = ">=0.6.0"
 tensorflow = ">=1.13.1,<2.0"
 
 [tool.poetry.dev-dependencies]
