@@ -5,12 +5,16 @@ from typing import Tuple
 import numpy as np
 import pandas as pd
 import sklearn
-import tensorflow as tf
 
 import redshells
 from redshells.model.early_stopping import EarlyStopping
 
 logger = getLogger(__name__)
+
+try:
+    import tensorflow as tf
+except ImportError:
+    logger.warning('tensorflow is not installed. CalculateSimilarityWithMatrixFactorization require tensorflow')
 
 
 class FactorizationMachineGraph(object):

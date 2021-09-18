@@ -2,11 +2,15 @@ import pickle
 from logging import getLogger
 
 import sklearn
-import tensorflow as tf
 
 from gokart.file_processor import PickleFileProcessor
 
 logger = getLogger(__name__)
+
+try:
+    import tensorflow as tf
+except ImportError:
+    logger.warning('tensorflow is not installed. save_tf_session require tensorflow')
 
 
 def calculate_auc(y_true, y_score, pos_label=1):

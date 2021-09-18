@@ -3,12 +3,16 @@ from typing import List, Any, Dict
 
 import numpy as np
 import sklearn
-import tensorflow as tf
 
 import redshells
 from redshells.model.early_stopping import EarlyStopping
 
 logger = getLogger(__name__)
+
+try:
+    import tensorflow as tf
+except ImportError:
+    logger.warning('tensorflow is not installed. MatrixFactorization require tensorflow')
 
 
 class MatrixFactorizationGraph(object):

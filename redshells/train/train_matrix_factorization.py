@@ -1,12 +1,18 @@
-from typing import Any
-from typing import Dict
+from logging import getLogger
+from typing import Any, Dict
 
 import luigi
 import sklearn
-import tensorflow as tf
 
 import gokart
 from redshells.model import MatrixFactorization
+
+logger = getLogger(__name__)
+
+try:
+    import tensorflow as tf
+except ImportError:
+    logger.warning('tensorflow is not installed. TrainMatrixFactorization require tensorflow')
 
 
 class TrainMatrixFactorization(gokart.TaskOnKart):

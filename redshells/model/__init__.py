@@ -5,4 +5,4 @@ from redshells.model.lda_model import LdaModel
 from redshells.model.matrix_factorization_model import MatrixFactorizationGraph, MatrixFactorization
 from redshells.model.scdv import SCDV
 import redshells.model.utils
-from redshells.model.tdidf import Tfidf
+from redshells.model.tfidf import Tfidf

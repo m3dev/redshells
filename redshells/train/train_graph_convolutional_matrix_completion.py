@@ -1,12 +1,19 @@
+from logging import getLogger
 from typing import Any, Dict
 
 import luigi
 import sklearn
-import tensorflow as tf
 
 import gokart
 from redshells.model.gcmc_dataset import GcmcDataset, GcmcGraphDataset
 from redshells.model.graph_convolutional_matrix_completion import GraphConvolutionalMatrixCompletion
+
+logger = getLogger(__name__)
+
+try:
+    import tensorflow as tf
+except ImportError:
+    logger.warning('tensorflow is not installed. TrainGraphConvolutionalMatrixCompletion require tensorflow')
 
 
 class NoneTask(gokart.TaskOnKart):

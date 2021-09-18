@@ -25,13 +25,17 @@ scikit-learn = "*"
 tqdm = "*"
 docutils = "==0.15"
 optuna = ">=0.6.0"
-tensorflow = ">=1.13.1,<2.0"
 
 [tool.poetry.dev-dependencies]
 tox = "*"
 moto = "*"
 testfixtures = "*"
 coverage = "*"
+tensorflow = ">=1.13.1,<2.0"
+
+[tool.yapf]
+based_on_style = "pep8"
+column_limit = 160
 
 [build-system]
 requires = ["poetry"]

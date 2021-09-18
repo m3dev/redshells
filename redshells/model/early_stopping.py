@@ -1,7 +1,13 @@
+from logging import getLogger
 import os
 import sys
 
-import tensorflow as tf
+logger = getLogger(__name__)
+
+try:
+    import tensorflow as tf
+except ImportError:
+    logger.warning('tensorflow is not installed. EarlyStopping require tensorflow')
 
 
 class EarlyStopping(object):
