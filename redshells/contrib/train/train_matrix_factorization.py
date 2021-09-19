@@ -5,7 +5,7 @@ import luigi
 import sklearn
 
 import gokart
-from redshells.model import MatrixFactorization
+from redshells.contrib.model import MatrixFactorization
 
 logger = getLogger(__name__)
 

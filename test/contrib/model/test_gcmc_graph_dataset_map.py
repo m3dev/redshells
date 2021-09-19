@@ -3,7 +3,7 @@ from logging import getLogger
 
 import numpy as np
 
-from redshells.model.gcmc_dataset import GcmcGraphDataset, GcmcDataset
+from redshells.contrib.model.gcmc_dataset import GcmcGraphDataset, GcmcDataset
 
 logger = getLogger(__name__)
 

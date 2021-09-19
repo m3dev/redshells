@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 import scipy.sparse as sp
 
-from redshells.model.gcmc_dataset import GcmcDataset, GcmcGraphDataset
+from redshells.contrib.model.gcmc_dataset import GcmcDataset, GcmcGraphDataset
 
 
 def _make_sparse_matrix(n, m, n_values):

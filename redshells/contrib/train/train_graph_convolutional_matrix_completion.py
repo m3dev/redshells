@@ -5,8 +5,8 @@ import luigi
 import sklearn
 
 import gokart
-from redshells.model.gcmc_dataset import GcmcDataset, GcmcGraphDataset
-from redshells.model.graph_convolutional_matrix_completion import GraphConvolutionalMatrixCompletion
+from redshells.model.contrib.gcmc_dataset import GcmcDataset, GcmcGraphDataset
+from redshells.model.contrib.graph_convolutional_matrix_completion import GraphConvolutionalMatrixCompletion
 
 logger = getLogger(__name__)
 

@@ -7,7 +7,7 @@ import pandas as pd
 import sklearn
 
 import redshells
-from redshells.model.early_stopping import EarlyStopping
+from redshells.contrib.model.early_stopping import EarlyStopping
 
 logger = getLogger(__name__)
 

@@ -8,8 +8,8 @@ import pandas as pd
 import scipy.sparse as sp
 
 import redshells
-from redshells.model.early_stopping import EarlyStopping
-from redshells.model.gcmc_dataset import GcmcGraphDataset, GcmcDataset
+from redshells.contrib.model.early_stopping import EarlyStopping
+from redshells.contrib.model.gcmc_dataset import GcmcGraphDataset, GcmcDataset
 
 logger = getLogger(__name__)
 

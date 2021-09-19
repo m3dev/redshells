@@ -4,8 +4,8 @@ import numpy as np
 import scipy.sparse as sp
 from unittest.mock import patch
 
-from redshells.model import GraphConvolutionalMatrixCompletion
-from redshells.model.gcmc_dataset import GcmcDataset, GcmcGraphDataset
+from redshells.contrib.model import GraphConvolutionalMatrixCompletion
+from redshells.contrib.model.gcmc_dataset import GcmcDataset, GcmcGraphDataset
 
 
 def _make_sparse_matrix(n, m, n_values):
@@ -81,7 +81,7 @@ class GraphConvolutionalMatrixCompletionTest(unittest.TestCase):
         self.assertIsNotNone(results[0])
         self.assertIsNotNone(results[1])
 
-    @patch('redshells.model.GraphConvolutionalMatrixCompletion.get_user_feature')
+    @patch('redshells.contrib.model.GraphConvolutionalMatrixCompletion.get_user_feature')
     def test_get_user_feature_with_new_items(self, dummy_get_user_feature):
         n_users = 10
         n_items = 20

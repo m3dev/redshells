@@ -3,8 +3,8 @@ from logging import getLogger
 
 import numpy as np
 
-from redshells.model.gcmc_dataset import GcmcDataset
-from redshells.model.graph_convolutional_matrix_completion import GcmcGraphDataset
+from redshells.contrib.model.gcmc_dataset import GcmcDataset
+from redshells.contrib.model.graph_convolutional_matrix_completion import GcmcGraphDataset
 
 logger = getLogger(__name__)
 
