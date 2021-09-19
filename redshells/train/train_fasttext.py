@@ -6,7 +6,7 @@ import gensim
 import luigi
 
 import gokart
-import redshells
+from redshells.train.utils import TokenIterator
 
 logger = getLogger(__name__)
 
@@ -31,7 +31,7 @@ class TrainFastText(gokart.TaskOnKart):
         shuffle(texts)
 
         if isinstance(texts[0], str):
-            texts = redshells.train.utils.TokenIterator(texts=texts)
+            texts = TokenIterator(texts=texts)
 
         logger.info(f'training FastText...')
         model = gensim.models.FastText(sentences=texts, **self.fasttext_kwargs)

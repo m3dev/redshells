@@ -3,8 +3,8 @@ from logging import getLogger
 
 import numpy as np
 
-from redshells.model import FeatureAggregationSimilarityModel
-from redshells.model.feature_aggregation_similarity_model import FeatureAggregationSimilarityDataset
+from redshells.contrib.model import FeatureAggregationSimilarityModel
+from redshells.contrib.model.feature_aggregation_similarity_model import FeatureAggregationSimilarityDataset
 
 logger = getLogger(__name__)
 

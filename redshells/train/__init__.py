@@ -5,7 +5,6 @@ from redshells.train.train_dictionary import TrainDictionary
 from redshells.train.train_doc2vec import TrainDoc2Vec
 from redshells.train.train_factorization_machine import TrainFactorizationMachine
 from redshells.train.train_fasttext import TrainFastText
-from redshells.train.train_feature_aggregation_similarity_model import TrainFeatureAggregationSimilarityModel
 from redshells.train.train_lda_model import TrainLdaModel
 from redshells.train.train_pairwise_similarity_model import TrainPairwiseSimilarityModel
 from redshells.train.train_tfidf import TrainTfidf
