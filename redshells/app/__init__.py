@@ -1,1 +1,1 @@
-from redshells.contrib.app.word_item_similarity.calculate_similarity_with_matrix_factorization import CalculateSimilarityWithMatrixFactorization
+import redshells.contrib.app.word_item_similarity.calculate_similarity_with_matrix_factorization
