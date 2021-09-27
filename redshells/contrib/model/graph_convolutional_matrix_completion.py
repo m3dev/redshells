@@ -6,13 +6,17 @@ from typing import List, Optional
 import numpy as np
 import pandas as pd
 import scipy.sparse as sp
-import tensorflow as tf
 
 import redshells
-from redshells.model.early_stopping import EarlyStopping
-from redshells.model.gcmc_dataset import GcmcGraphDataset, GcmcDataset
+from redshells.contrib.model.early_stopping import EarlyStopping
+from redshells.contrib.model.gcmc_dataset import GcmcGraphDataset, GcmcDataset
 
 logger = getLogger(__name__)
+
+try:
+    import tensorflow as tf
+except ImportError:
+    logger.warning('tensorflow is not installed. GraphConvolutionalMatrixCompletion require tensorflow')
 
 
 def _make_weight_variable(shape, name: str = None):

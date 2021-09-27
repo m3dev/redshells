@@ -6,6 +6,12 @@ import tensorflow.keras.layers as layers
 
 logger = getLogger(__name__)
 
+try:
+    import tensorflow as tf
+    import tensorflow.keras.layers as layers
+except ImportError:
+    logger.warning('tensorflow is not installed. FeatureAggregationSimilarityModel require tensorflow')
+
 
 class FeatureAggregationSimilarityDataset(tf.keras.utils.Sequence):
     def __init__(self,

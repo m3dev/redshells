@@ -5,7 +5,6 @@ from typing import List
 import luigi
 import numpy as np
 import pandas as pd
-import tensorflow as tf
 from tqdm import tqdm
 
 import gokart
@@ -13,10 +12,14 @@ import redshells
 
 logger = getLogger(__name__)
 
+try:
+    import tensorflow as tf
+except ImportError:
+    logger.warning('tensorflow is not installed. CalculateSimilarityWithMatrixFactorization require tensorflow')
+
 
 class CalculateSimilarityWithMatrixFactorization(gokart.TaskOnKart):
     """Calculate similarity between items using latent factors which are calculated by Matrix Factorization.
-    
     """
     task_namespace = 'redshells.word_item_similarity'
     target_item_task = gokart.TaskInstanceParameter(description='A task outputs item ids as type List.')

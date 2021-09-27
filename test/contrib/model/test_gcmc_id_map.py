@@ -1,7 +1,7 @@
 import unittest
 from logging import getLogger
 import numpy as np
-from redshells.model.gcmc_dataset import GcmcIdMap
+from redshells.contrib.model.gcmc_dataset import GcmcIdMap
 
 logger = getLogger(__name__)
 
