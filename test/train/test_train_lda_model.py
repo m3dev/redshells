@@ -12,6 +12,7 @@ class _DummyTask(luigi.Task):
 
 
 class TrainLdaModelTest(unittest.TestCase):
+
     def setUp(self):
         self.input_data = None
         self.dump_data = None

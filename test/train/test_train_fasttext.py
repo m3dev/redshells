@@ -11,6 +11,7 @@ class _DummyTask(gokart.TaskOnKart):
 
 
 class TrainFastTextTest(unittest.TestCase):
+
     def setUp(self):
         self.input_data = None
         self.dump_data = None

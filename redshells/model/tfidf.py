@@ -9,6 +9,7 @@ logger = getLogger(__name__)
 
 
 class Tfidf(object):
+
     def __init__(self, dictionary: gensim.corpora.Dictionary, tokens: List[List[str]]) -> None:
         self.dictionary = dictionary
         self.tfidf = gensim.models.TfidfModel([dictionary.doc2bow(t) for t in tokens])

@@ -12,6 +12,7 @@ logger = getLogger(__name__)
 class LdaModel(object):
     """TopicModel is a kind of wrapper of LdaModel in gensim module.
     """
+
     def __init__(self, n_topics: int, chunksize: int = 16, decay: float = 0.5, offset: int = 16, iterations: int = 3, eta: float = 1.0e-16) -> None:
         self.n_topics = n_topics
         self.chunksize = chunksize

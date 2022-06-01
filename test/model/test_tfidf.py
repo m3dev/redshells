@@ -11,6 +11,7 @@ logger = getLogger(__name__)
 
 
 class TestTfidf(unittest.TestCase):
+
     def test_apply_with_empty(self):
         texts = [random.choices(string.ascii_letters, k=100) for _ in range(100)]
         dictionary = gensim.corpora.Dictionary(texts)

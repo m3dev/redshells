@@ -63,6 +63,7 @@ def _catboostclassifier_default(trial: optuna.trial.Trial):
 
 
 class _OptunaParamFactory(metaclass=Singleton):
+
     def __init__(self):
         self._rules = dict()
         self._rules['XGBClassifier_default'] = _xgbclassifier_default

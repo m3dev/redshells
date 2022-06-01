@@ -5,6 +5,7 @@ logger = getLogger(__name__)
 
 
 class TokenIterator(object):
+
     def __init__(self, texts: List[str]) -> None:
         self.texts = texts
         self.i = 0

@@ -4,6 +4,7 @@ from redshells.factory.singleton import Singleton
 
 
 class _PredictionModelFactory(metaclass=Singleton):
+
     def __init__(self):
         self._models = dict()
         try:

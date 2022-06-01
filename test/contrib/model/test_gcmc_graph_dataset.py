@@ -13,6 +13,7 @@ def _make_sparse_matrix(n, m, n_values):
 
 
 class TestGcmcGraphDataset(unittest.TestCase):
+
     def test(self):
         # This tests that GraphConvolutionalMatrixCompletion runs without error, and its loss and rmse are small enough.
         n_users = 101

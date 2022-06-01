@@ -12,6 +12,7 @@ logger = getLogger(__name__)
 
 
 class GcmcDataset(object):
+
     def __init__(self,
                  user_ids: np.ndarray,
                  item_ids: np.ndarray,
@@ -28,6 +29,7 @@ class GcmcDataset(object):
         self.item_features = item_features
 
     def filter(self, user_ids: Set, item_ids: Set, ratings: Set):
+
         def _is_valid(u, i, r):
             return u in user_ids and i in item_ids and r in ratings
 
@@ -39,6 +41,7 @@ class GcmcDataset(object):
 
 
 class GcmcIdMap(object):
+
     def __init__(self,
                  ids: np.ndarray,
                  features: Optional[List[Dict[Any, np.ndarray]]] = None,
@@ -150,6 +153,7 @@ class GcmcIdMap(object):
 
 
 class GcmcGraphDataset(object):
+
     def __init__(self, dataset: GcmcDataset, test_size: float, min_user_click_count: int = 0, max_user_click_count: int = sys.maxsize) -> None:
         self._user = GcmcIdMap(dataset.user_ids, features=dataset.user_features, min_count=min_user_click_count, max_count=max_user_click_count)
         self._item = GcmcIdMap(dataset.item_ids, features=dataset.item_features)

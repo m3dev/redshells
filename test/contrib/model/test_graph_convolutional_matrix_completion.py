@@ -15,6 +15,7 @@ def _make_sparse_matrix(n, m, n_values):
 
 
 class GraphConvolutionalMatrixCompletionTest(unittest.TestCase):
+
     def test_run(self):
         # This tests that GraphConvolutionalMatrixCompletion runs without error, and its loss and rmse are small enough.
         n_users = 101

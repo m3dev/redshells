@@ -9,6 +9,7 @@ logger = getLogger(__name__)
 
 
 class TestGcmcGraphDataset(unittest.TestCase):
+
     def setUp(self) -> None:
         dataset = GcmcDataset(user_ids=np.array([0, 1, 2]), item_ids=np.array([10, 11, 12]), ratings=np.array([100, 101, 102]))
         self.graph_dataset = GcmcGraphDataset(dataset=dataset, test_size=0.1)

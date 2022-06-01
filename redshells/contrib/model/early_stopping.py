@@ -11,6 +11,7 @@ except ImportError:
 
 
 class EarlyStopping(object):
+
     def __init__(self, try_count=1, learning_rate=0., decay_speed=2.0, threshold=0.001, save_directory: str = None):
         self._save_path = os.path.join(save_directory, 'model.ckpt') if save_directory else None
         self._try_count = try_count
