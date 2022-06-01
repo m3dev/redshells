@@ -18,6 +18,7 @@ except ImportError:
 
 
 class FactorizationMachineGraph(object):
+
     def __init__(self, input_size: int, feature_kind_size: int, embedding_size: int, l2_weight: float, learning_rate: float, scope_name: str = '') -> None:
 
         with tf.variable_scope(scope_name, reuse=tf.AUTO_REUSE):
@@ -59,6 +60,7 @@ class FactorizationMachine(sklearn.base.BaseEstimator):
     
     For details of the algorithm, see "Factorization Machines" which is available at https://www.csie.ntu.edu.tw/~b97053/paper/Rendle2010FM.pdf
     """
+
     def __init__(self,
                  embedding_size: int,
                  l2_weight: float,

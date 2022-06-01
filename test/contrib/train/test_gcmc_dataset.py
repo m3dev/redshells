@@ -10,6 +10,7 @@ logger = getLogger(__name__)
 
 
 class TestGCMCDataset(unittest.TestCase):
+
     def test_without_information(self):
         user_ids = np.array([1, 1, 2, 2, 2])
         item_ids = np.array([1, 2, 1, 2, 3])

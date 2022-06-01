@@ -13,6 +13,7 @@ class _DummyTask(luigi.Task):
 
 
 class TrainPairwiseSimilarityModelTest(unittest.TestCase):
+
     def setUp(self):
         self.input_data = dict()
         self.dump_data = None

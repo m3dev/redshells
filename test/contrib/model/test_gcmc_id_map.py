@@ -7,6 +7,7 @@ logger = getLogger(__name__)
 
 
 class TestGcmcIdMap(unittest.TestCase):
+
     def test_initialize(self):
         ids = np.array([0, 0, 1, 2, 3, 3])
         features = [{0: np.array([0]), 1: np.array([1])}]

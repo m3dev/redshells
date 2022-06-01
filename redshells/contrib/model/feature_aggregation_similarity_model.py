@@ -14,6 +14,7 @@ except ImportError:
 
 
 class FeatureAggregationSimilarityDataset(tf.keras.utils.Sequence):
+
     def __init__(self,
                  x_item_indices: np.ndarray,
                  y_item_indices: np.ndarray,
@@ -71,6 +72,7 @@ class FeatureAggregationSimilarityDataset(tf.keras.utils.Sequence):
 
 
 class Average(tf.keras.layers.Layer):
+
     def __init__(self, **kwargs):
         super(Average, self).__init__(**kwargs)
 
@@ -94,6 +96,7 @@ class Average(tf.keras.layers.Layer):
 
 
 class Clip(tf.keras.layers.Layer):
+
     def __init__(self, **kwargs):
         super(Clip, self).__init__(**kwargs)
 
@@ -116,6 +119,7 @@ class Clip(tf.keras.layers.Layer):
 
 
 class FeatureAggregationSimilarityGraph(object):
+
     def __init__(self,
                  feature_size: int,
                  embedding_size: int,
@@ -165,6 +169,7 @@ class FeatureAggregationSimilarityGraph(object):
 
 
 class FeatureAggregationSimilarityModel(object):
+
     def __init__(
         self,
         embedding_size: int,

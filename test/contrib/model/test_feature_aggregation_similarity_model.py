@@ -10,6 +10,7 @@ logger = getLogger(__name__)
 
 
 class TestFeatureAggregationSimilarityModel(unittest.TestCase):
+
     def test(self):
         model = FeatureAggregationSimilarityModel(embedding_size=7, learning_rate=0.001, feature_size=2, item_size=4, max_feature_index=5)
         dataset = FeatureAggregationSimilarityDataset(x_item_indices=np.array([0, 1, 2]),

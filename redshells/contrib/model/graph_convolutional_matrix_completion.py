@@ -32,6 +32,7 @@ def _convert_sparse_matrix_to_sparse_tensor(x):
 
 
 class GraphConvolutionalMatrixCompletionGraph(object):
+
     def __init__(self,
                  n_rating: int,
                  n_user: int,
@@ -216,6 +217,7 @@ class GraphConvolutionalMatrixCompletionGraph(object):
 
 
 class GraphConvolutionalMatrixCompletion(object):
+
     def __init__(self,
                  graph_dataset: GcmcGraphDataset,
                  encoder_hidden_size: int,

@@ -12,6 +12,7 @@ class DimensionReductionModel(object):
     """ Reduce the dimension of vector values with respect to its importance.
     The importance is calculated by sum of squared values.
     """
+
     def __init__(self, dimension_size: int) -> None:
         self.dimension_size = dimension_size
         self.top_n_indices = None

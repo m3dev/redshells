@@ -16,6 +16,7 @@ except ImportError:
 
 
 class MatrixFactorizationGraph(object):
+
     def __init__(self, n_items: int, n_users: int, n_latent_factors: int, n_services: int, reg_item: float, reg_user: float, scope_name: str,
                  use_l2_upper_regularization: bool, average: float, standard_deviation: float) -> None:
         # placeholder
@@ -91,6 +92,7 @@ class MatrixFactorizationGraph(object):
 
 
 class MatrixFactorization(object):
+
     def __init__(self,
                  n_latent_factors: int,
                  learning_rate: float,
